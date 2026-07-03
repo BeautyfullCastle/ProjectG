@@ -67,13 +67,31 @@ button.active{border-color:var(--gold);color:var(--gold);}
 
 /* main grid */
 .main{display:grid;grid-template-columns:1fr 380px;grid-template-areas:"map side" "cheat side";gap:14px;align-items:start;}
+/* mobile — portrait and landscape both fall under ~900px on a phone;
+   collapse the fixed two-column board+sidebar into a single stacked column
+   so nothing gets crushed into an unreadable sliver */
+@media (max-width:900px){
+  body{padding:10px;}
+  .topbar{gap:12px;padding:10px 14px;}
+  .topbar h1{font-size:19px;}
+  .stat{min-width:64px;}
+  .stat .val{font-size:15px;}
+  .wsstrip{grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:10px 14px;padding:10px 12px;}
+  .main{grid-template-columns:1fr;grid-template-areas:"map" "cheat" "side";}
+  .sidebar{max-width:100%;}
+  .cheat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important;}
+}
+@media (max-width:480px){
+  .topbar{flex-direction:column;align-items:flex-start;}
+  .topbar .controls{width:100%;justify-content:flex-start;flex-wrap:wrap;}
+  .stat{min-width:56px;}
+}
 .mapwrap{grid-area:map;}
 #cheatPanel{grid-area:cheat;}
 .sidebar{grid-area:side;}
 .cheat-field{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);}
-.cheat-field input[type=number]{background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-family:var(--font-ui);font-variant-numeric:tabular-nums;}
-.cheat-field input[type=range]{accent-color:var(--gold);}
-.cheat-field b{color:var(--text);}
+.cheat-field input[type=number]{background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-family:var(--font-ui);font-variant-numeric:tabular-nums;width:100%;}
+.cheat-field small{color:var(--muted2);font-weight:400;}
 .mapwrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;}
 canvas{background:var(--tile);border-radius:6px;display:block;width:100%;height:auto;image-rendering:pixelated;}
 .maplegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
@@ -171,30 +189,30 @@ footer a{color:var(--gold-dim);}
 
     <details class="panel" id="cheatPanel" style="grid-column:1/2;">
       <summary style="cursor:pointer;font-family:var(--font-ui);font-weight:700;color:var(--gold);text-transform:uppercase;font-size:12px;letter-spacing:0.06em;">치트 패널 — 밸런스 조정</summary>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;margin-top:12px;">
+      <div class="cheat-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;margin-top:12px;">
         <label class="cheat-field">
           <span>향화 (직접 조정)</span>
           <input type="number" id="cheatCoin" step="100">
         </label>
         <label class="cheat-field">
-          <span>처치 보상 배율 <b id="cheatRewardVal" class="num"></b></span>
-          <input type="range" id="cheatReward" min="0.2" max="5" step="0.1">
+          <span>처치 보상 <small>(일반몬스터 1마리)</small></span>
+          <input type="number" id="cheatReward" min="1" step="10">
         </label>
         <label class="cheat-field">
-          <span>재앙 HP 배율 <b id="cheatBossHpVal" class="num"></b></span>
-          <input type="range" id="cheatBossHp" min="0.2" max="5" step="0.1">
+          <span>재앙 HP <small>(웨이브5 재앙)</small></span>
+          <input type="number" id="cheatBossHp" min="10" step="50">
         </label>
         <label class="cheat-field">
-          <span>몬스터 이동속도 배율 <b id="cheatSpeedVal" class="num"></b></span>
-          <input type="range" id="cheatSpeed" min="0.2" max="5" step="0.1">
+          <span>몬스터 속도 <small>(칸/초)</small></span>
+          <input type="number" id="cheatSpeed" min="0.1" step="0.1">
         </label>
         <label class="cheat-field">
-          <span>신 발행상한 배율 <b id="cheatMaxQtyVal" class="num"></b></span>
-          <input type="range" id="cheatMaxQty" min="0.2" max="5" step="0.1">
+          <span>신 발행상한 <small>(제우스 기준)</small></span>
+          <input type="number" id="cheatMaxQty" min="1" step="1">
         </label>
         <label class="cheat-field">
-          <span>신 공격력 배율 <b id="cheatDmgVal" class="num"></b></span>
-          <input type="range" id="cheatDmg" min="0.2" max="5" step="0.1">
+          <span>신 공격력 <small>(제우스 1주 기준)</small></span>
+          <input type="number" id="cheatDmg" min="1" step="1">
         </label>
       </div>
       <div style="margin-top:8px;"><button class="small" id="cheatReset">기본값으로</button></div>
@@ -1355,21 +1373,28 @@ document.getElementById('btnPause').addEventListener('click',(e)=>{
 document.getElementById('btnRestart').addEventListener('click',()=>location.reload());
 
 /* ============================== CHEAT PANEL ============================== */
+// state.cheat still stores plain multipliers internally (every formula
+// downstream reads it that way), but showing "x1.0" tells a designer nothing
+// concrete. Each field instead shows/edits the real resulting number for a
+// clear reference case, converting to/from the multiplier under the hood.
 const CHEAT_DEFAULTS = { reward:1, bossHp:1, speed:1, maxQty:1, dmg:1 };
-const cheatSliders = [
-  ['cheatReward','reward','cheatRewardVal'],
-  ['cheatBossHp','bossHp','cheatBossHpVal'],
-  ['cheatSpeed','speed','cheatSpeedVal'],
-  ['cheatMaxQty','maxQty','cheatMaxQtyVal'],
-  ['cheatDmg','dmg','cheatDmgVal'],
+const cheatFields = [
+  // [inputId, cheat key, baseline value at multiplier=1, decimals to show]
+  ['cheatReward','reward', WAVES[0].baseRwd * (MONSTERS[1].rwdRate/100), 0],
+  ['cheatBossHp','bossHp', Math.round(WAVES[4].baseHP * (MONSTERS[100001].hpRate/100)), 0],
+  ['cheatSpeed','speed', 1000/EDGE_MS_BASE, 2], // tiles/sec at a monster's base SpeedRate(100)
+  ['cheatMaxQty','maxQty', GODS[0].maxQty, 0], // Zeus, as the reference god
+  ['cheatDmg','dmg', GODS[0].dmg, 0], // Zeus, 1 share, price==basePrice
 ];
-cheatSliders.forEach(([inputId,key,labelId])=>{
+function cheatFieldValue(baseline, key, decimals){ return +(baseline*state.cheat[key]).toFixed(decimals); }
+cheatFields.forEach(([inputId,key,baseline,decimals])=>{
   const el = document.getElementById(inputId);
-  el.value = state.cheat[key];
-  document.getElementById(labelId).textContent = 'x'+Number(state.cheat[key]).toFixed(1);
+  el.step = decimals>0? (1/Math.pow(10,decimals)) : Math.max(1, Math.round(baseline/20));
+  el.value = cheatFieldValue(baseline,key,decimals);
   el.addEventListener('input', ()=>{
-    state.cheat[key] = +el.value;
-    document.getElementById(labelId).textContent = 'x'+(+el.value).toFixed(1);
+    const v = +el.value;
+    if(!isFinite(v) || v<=0) return;
+    state.cheat[key] = v/baseline;
     renderGodList(); // reflect the new cap/atk numbers immediately, don't wait for the throttle
   });
 });
@@ -1387,9 +1412,8 @@ function syncCheatCoinField(){
 }
 document.getElementById('cheatReset').addEventListener('click', ()=>{
   Object.assign(state.cheat, CHEAT_DEFAULTS);
-  cheatSliders.forEach(([inputId,key,labelId])=>{
-    document.getElementById(inputId).value = state.cheat[key];
-    document.getElementById(labelId).textContent = 'x'+Number(state.cheat[key]).toFixed(1);
+  cheatFields.forEach(([inputId,key,baseline,decimals])=>{
+    document.getElementById(inputId).value = cheatFieldValue(baseline,key,decimals);
   });
   renderGodList();
 });
