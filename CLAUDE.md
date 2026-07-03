@@ -193,7 +193,7 @@ world issues" that shift both the 7 world-state scores (점수.html) and god pri
 - **#4**: "Bumper harvest, granaries overflow" — Weight 70, boosted by WS3 (+20); WS 2,5,7 +10, WS 6 +10; Gods group 4 +20, group 6 +10.
 - **#5**: "Great storm sinks ships at sea" — Weight 50; WS 2 −15; Gods group 2 −10, group 3 +10.
 - **#6**: "Fishing catch increases greatly" — Weight 70 (boosted by WS3 +20); WS 2 +20; Gods group 2 +20, group 4 +10.
-- **#7**: "A festival is held successfully" — Gated on WS2 ≥ 80; Weight 100 (boosted by WS2 +30, WS4 +20); WS4 +10, delayed WS2 (2 waves later) +10; Gods group 4,8 +10, group 10 −10.
+- **#7**: "A festival is held successfully" — Gated on WS2 ≥ 80; Weight 100 (boosted by WS2 +30, WS4 +20); WS4 +10, delayed WS7/Population (2 waves later) +10 [not WS2 — verified against raw row: `AfterEffectWave=2, AfterEffectWSGroup=7, AfterEffectWSValue=10`]; Gods group 4,8 +10, group 10 −10.
 - **#8**: "Wild animals increase; public safety worsens, cities stop communicating" — Weight 50; WS 2,3,4 −10; delayed (3 waves) WS1 +10; Gods group 9 −20, group 7 +10.
 - **#9**: "A new heroic epic becomes popular" — Weight 50 (boosted by WS4 +30); WS5 −10, WS4 +10; delayed (3 waves) WS1 +10; Gods group 1 +20, group 6 +10.
 - **#10**: "New astronomical theory emerges" — Weight 50 (boosted by WS3 +30); WS3 +10, WS6 −10; Gods group 9 +10, group (1,2,3,4,5,6,7,8,10) −20.
@@ -710,3 +710,16 @@ feeds into or reads from it.
   (evident copy-paste error), and pantheon entries beyond Athena (#5) have no filled
   detail in the extracted content — worth checking the source PDF for whether more
   detail exists there.
+- **Hades's base skill text disagrees with its own data field**: the skill description
+  (`#Desc`) for `1003001` says souls are consumed "영혼을 30개 모으면" (at 30 souls
+  collected), but `SkillBaseValue01` for that row is `50`, not `30`. Collection Skill 2
+  (`1003003`) then adds `+20` to "the base skill's soul threshold," which only makes
+  sense arithmetically against the `50` in the data field (→ 70), not the `30` in the
+  prose. Treat `SkillBaseValue01=50` as authoritative for implementation and flag the
+  description text (`30`) as the likely stale value, but confirm with design.
+- **사건.html row #7 (festival event) delayed effect targets WS7 (Population), not
+  WS2**: raw columns are `AfterEffectWave=2, AfterEffectWSGroup=7, AfterEffectWSValue=10`
+  — easy to misread as WS2 given the row's other columns reference WS2 repeatedly.
+  Worth double-checking column alignment by hand (offset-by-one errors) for any other
+  event row before trusting a summarized version, since the raw sheet has many blank/
+  merged-looking cells that shift visually.
