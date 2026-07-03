@@ -66,7 +66,14 @@ button.active{border-color:var(--gold);color:var(--gold);}
 .ws-item .valrow{display:flex;justify-content:space-between;font-size:12px;}
 
 /* main grid */
-.main{display:grid;grid-template-columns:1fr 380px;gap:14px;align-items:start;}
+.main{display:grid;grid-template-columns:1fr 380px;grid-template-areas:"map side" "cheat side";gap:14px;align-items:start;}
+.mapwrap{grid-area:map;}
+#cheatPanel{grid-area:cheat;}
+.sidebar{grid-area:side;}
+.cheat-field{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);}
+.cheat-field input[type=number]{background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-family:var(--font-ui);font-variant-numeric:tabular-nums;}
+.cheat-field input[type=range]{accent-color:var(--gold);}
+.cheat-field b{color:var(--text);}
 .mapwrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;}
 canvas{background:var(--tile);border-radius:6px;display:block;width:100%;height:auto;image-rendering:pixelated;}
 .maplegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
@@ -161,6 +168,37 @@ footer a{color:var(--gold-dim);}
         <span class="legend-item"><span class="swatch" style="background:transparent;border:2px solid var(--select);width:6px;height:6px;"></span>선택한 타일</span>
       </div>
     </div>
+
+    <details class="panel" id="cheatPanel" style="grid-column:1/2;">
+      <summary style="cursor:pointer;font-family:var(--font-ui);font-weight:700;color:var(--gold);text-transform:uppercase;font-size:12px;letter-spacing:0.06em;">치트 패널 — 밸런스 조정</summary>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;margin-top:12px;">
+        <label class="cheat-field">
+          <span>향화 (직접 조정)</span>
+          <input type="number" id="cheatCoin" step="100">
+        </label>
+        <label class="cheat-field">
+          <span>처치 보상 배율 <b id="cheatRewardVal" class="num"></b></span>
+          <input type="range" id="cheatReward" min="0.2" max="5" step="0.1">
+        </label>
+        <label class="cheat-field">
+          <span>재앙 HP 배율 <b id="cheatBossHpVal" class="num"></b></span>
+          <input type="range" id="cheatBossHp" min="0.2" max="5" step="0.1">
+        </label>
+        <label class="cheat-field">
+          <span>몬스터 이동속도 배율 <b id="cheatSpeedVal" class="num"></b></span>
+          <input type="range" id="cheatSpeed" min="0.2" max="5" step="0.1">
+        </label>
+        <label class="cheat-field">
+          <span>신 발행상한 배율 <b id="cheatMaxQtyVal" class="num"></b></span>
+          <input type="range" id="cheatMaxQty" min="0.2" max="5" step="0.1">
+        </label>
+        <label class="cheat-field">
+          <span>신 공격력 배율 <b id="cheatDmgVal" class="num"></b></span>
+          <input type="range" id="cheatDmg" min="0.2" max="5" step="0.1">
+        </label>
+      </div>
+      <div style="margin-top:8px;"><button class="small" id="cheatReset">기본값으로</button></div>
+    </details>
 
     <div class="sidebar">
       <div class="panel" id="tilePanel">
@@ -533,6 +571,9 @@ const state = {
   gameOver: false,
   hitFx: [],
   kills: 0,
+  // debug/cheat multipliers — the balance-critical knobs surfaced in the
+  // cheat panel below the board. 1 = the already-tuned default from CHANGES.md.
+  cheat: { reward:1, bossHp:1, speed:1, maxQty:1, dmg:1 },
 };
 
 // seed starting real estate: the 4 tiles nearest the start point (§2/개요.html:
@@ -759,10 +800,11 @@ function obscure(text, keepRatio){
 
 function spawnMonster(monsterId, wave){
   const m = MONSTERS[monsterId];
-  const hp = Math.round(wave.baseHP * (m.hpRate/100));
+  let hp = Math.round(wave.baseHP * (m.hpRate/100));
+  if(m.boss) hp = Math.round(hp * state.cheat.bossHp);
   const spd = Math.round(wave.baseSpd * (m.spdRate/100)); // spec-accurate derived "Speed" stat (kept for display/future balancing)
   const res = Math.round(wave.baseRes * (m.resRate/100));
-  const rwd = Math.round(wave.baseRwd * (m.rwdRate/100));
+  const rwd = Math.round(wave.baseRwd * (m.rwdRate/100) * state.cheat.reward);
   state.monsters.push({
     defId: monsterId, hp, maxHp:hp, spd:Math.max(1,spd), spdRate:m.spdRate, resist:res, rwd, boss:m.boss,
     pathPos: 0, edgeT: 0, alive:true,
@@ -786,7 +828,7 @@ function monsterWorldXY(mon){
 // pace we scale a fixed prototype baseline by each monster's relative
 // SpeedRate, giving multi-second laps a stationary tower can actually contest.
 const EDGE_MS_BASE = 900;
-function edgeCrossMs(mon){ return EDGE_MS_BASE * (100/Math.max(20,mon.spdRate)); }
+function edgeCrossMs(mon){ return (EDGE_MS_BASE * (100/Math.max(20,mon.spdRate))) / state.cheat.speed; }
 
 function moveMonsters(dtMs){
   state.monsters.forEach(mon=>{
@@ -829,7 +871,7 @@ function combatTick(dtMs){
     const t = pg.tileObj; // attack cooldown must live on the persistent tile record,
                            // not on `pg` — placedGods() rebuilds that wrapper every tick
     const price = state.godPrice[g.id];
-    const atk = g.dmg * Math.max(1,pg.shares) * (price/g.basePrice);
+    const atk = g.dmg * Math.max(1,pg.shares) * (price/g.basePrice) * state.cheat.dmg;
     const atkIntervalMs = 1000/(g.atkSpd/10);
     t._atkAcc = (t._atkAcc||0)+dtMs;
     if(t._atkAcc<atkIntervalMs) return; // still cooling down — keep accumulating
@@ -990,7 +1032,8 @@ function buyGod(godId, qty){
   // 신.html MaxQuantity — total issued shares are finite (Zeus/Poseidon/Hades
   // 50, mid-tier gods 60, Hermes 20). This was never enforced, which is what
   // let one god be bought without limit — money was the only constraint.
-  qty = Math.min(qty, g.maxQty - h.shares);
+  const cap = Math.round(g.maxQty * state.cheat.maxQty);
+  qty = Math.min(qty, cap - h.shares);
   if(qty<=0) return false;
   const cost = price*qty;
   if(state.coin<cost) return false;
@@ -1117,15 +1160,16 @@ function renderGodList(){
     const h = state.godHoldings[g.id];
     const myPct = h.shares>0 && h.avgPrice ? ((price-h.avgPrice)/h.avgPrice*100) : null; // my position's return
     // 인게임 사양.html §3-A-3: 현재 공격력 = BaseDamage × 보유 주식 수 × (현재가/BasePrice)
-    const atk = h.shares>0 ? g.dmg * h.shares * (price/g.basePrice) : 0;
+    const atk = h.shares>0 ? g.dmg * h.shares * (price/g.basePrice) * state.cheat.dmg : 0;
     const dps = atk * (g.atkSpd/10);
     const isPlaced = Object.values(state.tiles).some(t=>t.owned && t.godId===g.id);
-    const atMax = h.shares>=g.maxQty;
+    const effMaxQty = Math.round(g.maxQty * state.cheat.maxQty);
+    const atMax = h.shares>=effMaxQty;
     const buyBlocked = state.coin<price || atMax;
     return `<div class="god-row ${h.shares>0?'owned':''}" style="border-left:3px solid ${g.color}">
       <div>
         <div class="god-name"><span class="god-icon" style="background:${g.color}22;color:${g.color}">${g.icon}</span>${g.kr}</div>
-        <div class="god-meta">보유 ${h.shares} / 발행 ${g.maxQty}주 · CoreWS ${WS_DEFS.find(w=>w.id===g.coreWS).name}</div>
+        <div class="god-meta">보유 ${h.shares} / 발행 ${effMaxQty}주 · CoreWS ${WS_DEFS.find(w=>w.id===g.coreWS).name}</div>
         ${myPct!==null ? `<div class="god-meta">평단가 ${fmt(h.avgPrice)} · <span class="${myPct>=0?'up':'down'}">${myPct>=0?'+':''}${myPct.toFixed(1)}% 수익</span></div>` : ''}
         ${h.shares>0 ? `<div class="god-meta">공격력 ${atk.toFixed(1)} · 초당피해 ${dps.toFixed(1)} · ${isPlaced?'<span class="up">배치됨</span>':'<span class="down">미배치</span>'}</div>` : ''}
       </div>
@@ -1309,6 +1353,46 @@ document.getElementById('btnPause').addEventListener('click',(e)=>{
   e.target.textContent = state.running? '일시정지':'재생';
 });
 document.getElementById('btnRestart').addEventListener('click',()=>location.reload());
+
+/* ============================== CHEAT PANEL ============================== */
+const CHEAT_DEFAULTS = { reward:1, bossHp:1, speed:1, maxQty:1, dmg:1 };
+const cheatSliders = [
+  ['cheatReward','reward','cheatRewardVal'],
+  ['cheatBossHp','bossHp','cheatBossHpVal'],
+  ['cheatSpeed','speed','cheatSpeedVal'],
+  ['cheatMaxQty','maxQty','cheatMaxQtyVal'],
+  ['cheatDmg','dmg','cheatDmgVal'],
+];
+cheatSliders.forEach(([inputId,key,labelId])=>{
+  const el = document.getElementById(inputId);
+  el.value = state.cheat[key];
+  document.getElementById(labelId).textContent = 'x'+Number(state.cheat[key]).toFixed(1);
+  el.addEventListener('input', ()=>{
+    state.cheat[key] = +el.value;
+    document.getElementById(labelId).textContent = 'x'+(+el.value).toFixed(1);
+    renderGodList(); // reflect the new cap/atk numbers immediately, don't wait for the throttle
+  });
+});
+const cheatCoinEl = document.getElementById('cheatCoin');
+cheatCoinEl.value = state.coin;
+cheatCoinEl.addEventListener('change', ()=>{
+  const v = Math.max(0, Math.round(+cheatCoinEl.value||0));
+  state.coin = v;
+  renderAll();
+});
+function syncCheatCoinField(){
+  // don't clobber the field while the player is actively typing in it
+  if(document.activeElement===cheatCoinEl) return;
+  cheatCoinEl.value = state.coin;
+}
+document.getElementById('cheatReset').addEventListener('click', ()=>{
+  Object.assign(state.cheat, CHEAT_DEFAULTS);
+  cheatSliders.forEach(([inputId,key,labelId])=>{
+    document.getElementById(inputId).value = state.cheat[key];
+    document.getElementById(labelId).textContent = 'x'+Number(state.cheat[key]).toFixed(1);
+  });
+  renderGodList();
+});
 document.getElementById('btnStartWave').addEventListener('click',()=>{
   state.intermission = false;
   document.getElementById('waveGate').style.display='none';
@@ -1374,7 +1458,7 @@ function loop(now){
       // check re-ran this on EVERY frame during alternating half-second
       // windows, tearing down and rebuilding the buy/sell buttons dozens of
       // times a second and yanking them out from under real clicks
-      if(now-lastGodListRender>500){ renderGodList(); lastGodListRender=now; }
+      if(now-lastGodListRender>500){ renderGodList(); syncCheatCoinField(); lastGodListRender=now; }
     }catch(err){
       state.running=false;
       pushLog(`⚠️ 시뮬레이션 오류로 일시정지됨: ${err.message}`);
