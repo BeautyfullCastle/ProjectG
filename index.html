@@ -3,1496 +3,788 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Project G — Prototype</title>
+<title>Project G — Prototype v2</title>
 <style>
 :root{
   --bg:#0b0d12; --panel:#151822; --panel2:#1b1f2c; --border:#3f4658;
   --gold:#c9a15a; --gold-dim:#8a743f; --select:#5ec8f0;
   --text:#e8e4d8; --muted:#9aa0b0; --muted2:#6b7280;
   --up:#4fae7c; --down:#d9635a;
-  --tile:#1e2330; --tile-owned:#2a2416; --path:#2b3040;
-  --font-display: "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
-  --font-ui: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 :root[data-theme="light"]{
-  --bg:#f2ede1; --panel:#ffffff; --panel2:#f7f3e8; --border:#d8cfb8;
+  --bg:#f2ede1; --panel:#fff; --panel2:#f7f3e8; --border:#d8cfb8;
   --gold:#a67c2e; --gold-dim:#c9a15a; --select:#1f6fb2;
-  --text:#26221a; --muted:#726b58;
-  --up:#2f8f5c; --down:#b8443c;
-  --tile:#e6ddc8; --tile-owned:#f0e2b8; --path:#d6cbaa;
+  --text:#26221a; --muted:#726b58; --up:#2f8f5c; --down:#b8443c;
 }
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]){
-    --bg:#f2ede1; --panel:#ffffff; --panel2:#f7f3e8; --border:#d8cfb8;
-    --gold:#a67c2e; --gold-dim:#c9a15a; --select:#1f6fb2;
-    --text:#26221a; --muted:#726b58;
-    --up:#2f8f5c; --down:#b8443c;
-    --tile:#e6ddc8; --tile-owned:#f0e2b8; --path:#d6cbaa;
-  }
-}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f2ede1; --panel:#fff; --panel2:#f7f3e8; --border:#d8cfb8;
+  --gold:#a67c2e; --gold-dim:#c9a15a; --select:#1f6fb2;
+  --text:#26221a; --muted:#726b58; --up:#2f8f5c; --down:#b8443c;
+}}
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font-ui);overflow-x:hidden;}
-body{padding:20px;min-height:100vh;}
-h1,h2,h3{font-family:var(--font-display);font-weight:600;text-wrap:balance;margin:0;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+body{padding:16px;min-height:100vh;}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;}
 .num{font-variant-numeric:tabular-nums;}
-.app{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
+.up{color:var(--up);} .down{color:var(--down);}
+.app{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
 
-/* top bar */
-.topbar{display:flex;align-items:center;gap:20px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 20px;flex-wrap:wrap;}
-.topbar h1{font-size:22px;color:var(--gold);letter-spacing:0.3px;}
-.topbar .sub{color:var(--muted);font-size:12px;margin-top:2px;}
-.stat{display:flex;flex-direction:column;gap:2px;min-width:78px;}
-.stat .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);}
-.stat .val{font-size:17px;font-weight:600;}
+/* top status bar */
+.hud{display:flex;align-items:center;gap:18px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 18px;flex-wrap:wrap;}
+.hud h1{font-size:20px;color:var(--gold);letter-spacing:.3px;}
+.hud .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.hud .stat{display:flex;flex-direction:column;gap:1px;}
+.hud .stat .label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);}
+.hud .stat .val{font-size:16px;font-weight:600;}
 .spacer{flex:1;}
-.controls{display:flex;gap:6px;align-items:center;}
-button{font-family:var(--font-ui);cursor:pointer;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:7px 12px;font-size:13px;transition:background .12s,border-color .12s;}
+
+button{font-family:var(--font-ui);cursor:pointer;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:7px 13px;font-size:13px;transition:.12s;}
 button:hover{border-color:var(--gold-dim);}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:1px;}
-button.primary{background:var(--gold);border-color:var(--gold);color:#1a1508;font-weight:600;}
+button.primary{background:var(--gold);border-color:var(--gold);color:#1a1508;font-weight:700;}
 button.primary:hover{background:var(--gold-dim);}
-button:disabled{opacity:0.35;cursor:not-allowed;}
+button:disabled{opacity:.35;cursor:not-allowed;}
 button.small{padding:4px 9px;font-size:12px;}
-button.insufficient{border-color:var(--down);color:var(--down);background:rgba(217,99,90,0.12);}
-button.insufficient:disabled{opacity:0.75;}
+button.insufficient{border-color:var(--down);color:var(--down);background:rgba(217,99,90,.12);}
 button.active{border-color:var(--gold);color:var(--gold);}
 
-/* WS strip */
-.wsstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;}
-.ws-item{display:flex;flex-direction:column;gap:5px;}
-.ws-item .label{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);}
-.ws-bar{height:5px;border-radius:3px;background:var(--tile);overflow:hidden;}
-.ws-bar > div{height:100%;background:var(--gold);transition:width .4s;}
-.ws-item .valrow{display:flex;justify-content:space-between;font-size:12px;}
+.screen{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 22px;}
+.screen-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.screen-head h2{font-size:18px;color:var(--gold);}
+.back{font-size:13px;color:var(--muted);}
 
-/* main grid */
-.main{display:grid;grid-template-columns:1fr 380px;grid-template-areas:"map side" "cheat side";gap:14px;align-items:start;}
-/* mobile — portrait and landscape both fall under ~900px on a phone;
-   collapse the fixed two-column board+sidebar into a single stacked column
-   so nothing gets crushed into an unreadable sliver */
-@media (max-width:900px){
-  body{padding:10px;}
-  .topbar{gap:12px;padding:10px 14px;}
-  .topbar h1{font-size:19px;}
-  .stat{min-width:64px;}
-  .stat .val{font-size:15px;}
-  .wsstrip{grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:10px 14px;padding:10px 12px;}
-  .main{grid-template-columns:1fr;grid-template-areas:"map" "cheat" "side";}
-  .sidebar{max-width:100%;}
-  .cheat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important;}
-}
-@media (max-width:480px){
-  .topbar{flex-direction:column;align-items:flex-start;}
-  .topbar .controls{width:100%;justify-content:flex-start;flex-wrap:wrap;}
-  .stat{min-width:56px;}
-}
-.mapwrap{grid-area:map;}
-#cheatPanel{grid-area:cheat;}
-.sidebar{grid-area:side;}
-.cheat-field{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);}
-.cheat-field input[type=number]{background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-family:var(--font-ui);font-variant-numeric:tabular-nums;width:100%;}
-.cheat-field small{color:var(--muted2);font-weight:400;}
-.mapwrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;}
-canvas{background:var(--tile);border-radius:6px;display:block;width:100%;height:auto;image-rendering:pixelated;}
-.maplegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
-.legend-item{display:flex;align-items:center;gap:5px;}
-.swatch{width:10px;height:10px;border-radius:2px;display:inline-block;}
+/* hub */
+.hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+.hub-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 14px;border:1px solid var(--border);border-radius:12px;background:var(--panel2);cursor:pointer;transition:.14s;}
+.hub-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.hub-card .ico{font-size:38px;line-height:1;}
+.hub-card .name{font-family:var(--font-display);font-size:17px;font-weight:600;}
+.hub-card .desc{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.4;}
+.hub-start{display:flex;align-items:center;justify-content:center;gap:10px;padding:18px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--panel2),var(--gold));color:#1a1508;font-family:var(--font-display);font-size:20px;font-weight:700;cursor:pointer;width:100%;}
+.hub-start:hover{filter:brightness(1.06);}
 
-.sidebar{display:flex;flex-direction:column;gap:14px;}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
-.panel h2{font-size:14px;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-ui);font-weight:700;}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:2px;}
+/* stock list */
+.sort-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.sort-row .lbl{font-size:12px;color:var(--muted);margin-right:4px;}
+.stock{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--panel2);margin-bottom:7px;border-left-width:3px;}
+.stock .ico{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.stock .nm{font-family:var(--font-display);font-size:15px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.stock .lv{font-size:11px;color:var(--gold);border:1px solid var(--gold-dim);border-radius:4px;padding:0 5px;}
+.stock .meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.expbar{height:4px;border-radius:2px;background:var(--border);margin-top:4px;overflow:hidden;max-width:170px;}
+.expbar>div{height:100%;background:var(--gold);}
+.stock .price{text-align:right;}
+.stock .price .p{font-size:15px;font-weight:700;}
+.stock .price .d{font-size:11px;font-weight:600;}
+.stock .acts{display:flex;flex-direction:column;gap:4px;}
 
-.godlist{display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto;}
-.god-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel2);}
-.god-row.owned{border-color:var(--gold-dim);}
-.god-name{font-family:var(--font-display);font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
-.god-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:12px;flex-shrink:0;}
-.god-meta{font-size:11px;color:var(--muted);}
-.price-col{text-align:right;}
-.price{font-size:14px;font-weight:700;}
-.pct{font-size:11px;font-weight:600;}
-.pct.up,.up{color:var(--up);}
-.pct.down,.down{color:var(--down);}
-.trade-btns{display:flex;gap:4px;}
+/* oracle */
+.info-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:11px 13px;border:1px solid var(--border);border-radius:9px;background:var(--panel2);margin-bottom:8px;}
+.info-card .when{font-size:12px;}
+.info-card .when b{color:var(--gold);}
+.info-card .buys{display:flex;flex-direction:column;gap:5px;}
+.info-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.owned-info{padding:10px 12px;border:1px dashed var(--gold-dim);border-radius:9px;background:var(--panel2);margin-bottom:8px;font-size:13px;line-height:1.5;}
 
-.oracle-card{background:var(--panel2);border:1px dashed var(--border);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5;min-height:52px;}
-.oracle-card.revealed{border-style:solid;border-color:var(--gold-dim);}
-.oracle-meta{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px;}
+/* news */
+.news{max-width:560px;margin:0 auto;border:2px solid var(--border);border-radius:6px;padding:20px 24px;background:var(--panel2);}
+.news .masthead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px double var(--border);padding-bottom:8px;margin-bottom:14px;}
+.news .masthead .title{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:1px;}
+.news .masthead .date{font-size:11px;color:var(--muted);}
+.news .headline{font-family:var(--font-display);font-size:19px;font-weight:700;margin-bottom:10px;line-height:1.35;}
+.news .body{font-size:13px;line-height:1.7;color:var(--text);margin-bottom:14px;}
+.news .kw{display:flex;flex-wrap:wrap;gap:6px;}
+.news .kw span{font-size:11.5px;border:1px solid var(--gold-dim);color:var(--gold);border-radius:20px;padding:2px 10px;}
 
-.log{display:flex;flex-direction:column-reverse;gap:5px;max-height:170px;overflow-y:auto;font-size:12px;}
-.log-item{padding:6px 8px;border-radius:6px;background:var(--panel2);border-left:3px solid var(--gold-dim);}
-.log-item .lw{color:var(--muted);font-size:10px;}
+/* setup roster */
+.setup{display:grid;grid-template-columns:1fr 1.3fr;gap:16px;}
+.wave-info{border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--panel2);}
+.wave-info .r{display:flex;gap:10px;margin-bottom:12px;}
+.wave-info .r .ic{font-size:26px;}
+.wave-info .r .t{font-size:13px;}
+.wave-info .r .t b{display:block;font-family:var(--font-display);font-size:15px;margin-bottom:2px;}
+.wave-info .r .t small{color:var(--muted);font-size:11.5px;line-height:1.4;}
+.slots{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;}
+.slot{width:52px;height:52px;border:2px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--panel2);cursor:pointer;position:relative;}
+.slot.filled{border-style:solid;}
+.slot .x{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--down);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;}
+.roster{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:340px;overflow-y:auto;}
+.rg{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--panel2);cursor:pointer;border-left-width:3px;}
+.rg.locked{opacity:.45;cursor:not-allowed;}
+.rg.deployed{outline:2px solid var(--gold);}
+.rg .ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.rg .nm{font-family:var(--font-display);font-size:14px;font-weight:600;}
+.rg .lv{font-size:11px;color:var(--gold);}
 
-.tileinfo{font-size:13px;line-height:1.6;}
-.tileinfo .row{display:flex;justify-content:space-between;}
-.empty-hint{color:var(--muted);font-size:12px;font-style:italic;}
+/* combat */
+.combat-wrap{display:grid;grid-template-columns:1fr 260px;gap:14px;}
+canvas{background:var(--panel2);border-radius:8px;width:100%;height:auto;display:block;}
+.combat-side{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--panel2);font-size:12.5px;}
+.combat-side h3{font-family:var(--font-display);font-size:15px;margin-bottom:6px;}
+.combat-side .row{display:flex;justify-content:space-between;padding:2px 0;color:var(--muted);}
+.combat-side .row b{color:var(--text);}
+.log{margin-top:10px;max-height:150px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:4px;}
+.log .li{font-size:11.5px;padding:5px 7px;border-radius:6px;background:var(--panel);border-left:3px solid var(--gold-dim);}
 
-.godpick{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:6px;}
-.godpick button{padding:6px 4px;font-size:11px;line-height:1.3;}
+/* result */
+.result{text-align:center;padding:40px 20px;}
+.result .big{font-family:var(--font-display);font-size:52px;font-weight:700;letter-spacing:2px;}
+.result .sub{font-size:15px;color:var(--muted);margin:6px 0 22px;}
+.result .stats{display:inline-grid;grid-template-columns:auto auto;gap:8px 26px;text-align:left;font-size:14px;margin-bottom:24px;}
+.result .stats .k{color:var(--muted);}
 
-footer{text-align:center;color:var(--muted);font-size:11px;padding:10px 0 4px;}
-footer a{color:var(--gold-dim);}
+/* starting pick */
+.pick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.pick{border:1px solid var(--border);border-radius:12px;padding:22px 16px;background:var(--panel2);text-align:center;cursor:pointer;transition:.14s;}
+.pick:hover{border-color:var(--gold);transform:translateY(-2px);}
+.pick .ic{font-size:44px;}
+.pick .nm{font-family:var(--font-display);font-size:19px;font-weight:600;margin:8px 0 6px;}
+.pick .ds{font-size:12px;color:var(--muted);line-height:1.5;}
 
+footer{text-align:center;color:var(--muted);font-size:11px;padding:6px 0;}
 ::-webkit-scrollbar{width:8px;height:8px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+@media (max-width:820px){
+  .setup,.combat-wrap{grid-template-columns:1fr;}
+  .hub-grid,.pick-grid{grid-template-columns:1fr;}
+  .roster{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
 
 <div class="app">
-  <div class="topbar">
+  <div class="hud">
     <div>
       <h1>Project G</h1>
-      <div class="sub">신탁 기반 타워디펜스 × 주식거래 — 프로토타입</div>
+      <div class="sub">신탁 기반 방어 × 주식투자 — 플로우 v2</div>
     </div>
-    <div class="stat"><span class="label">향화</span><span class="val num" id="statCoin">—</span></div>
-    <div class="stat"><span class="label">자산평가액</span><span class="val num" id="statAssets">—</span></div>
-    <div class="stat"><span class="label">웨이브</span><span class="val num" id="statWave">—</span></div>
-    <div class="stat"><span class="label">남은시간</span><span class="val num" id="statTime">—</span></div>
-    <div class="stat"><span class="label">필드 몬스터</span><span class="val num" id="statMonsters">—</span></div>
-    <div class="stat"><span class="label">처치 수</span><span class="val num" id="statKills">—</span></div>
-    <div class="stat"><span class="label">다음 사건까지</span><span class="val num" id="statNextEvent">—</span></div>
+    <div class="stat"><span class="label">진행 웨이브</span><span class="val num" id="hWave">—</span></div>
+    <div class="stat"><span class="label">보유 금액</span><span class="val num" id="hCoin">—</span></div>
+    <div class="stat"><span class="label">자산 총액</span><span class="val num" id="hAssets">—</span></div>
     <div class="spacer"></div>
-    <div class="controls">
-      <button class="small" id="btnSpeed1">1×</button>
-      <button class="small" id="btnSpeed2">2×</button>
-      <button class="small" id="btnSpeed4">4×</button>
-      <button class="primary" id="btnPause">일시정지</button>
-      <button id="btnRestart">재시작</button>
-    </div>
+    <button class="small" id="btnRestart">재시작</button>
   </div>
 
-  <div class="wsstrip" id="wsStrip"></div>
+  <div id="screen"></div>
 
-  <div class="main">
-    <div class="mapwrap" style="position:relative;">
-      <canvas id="cv" width="640" height="640"></canvas>
-      <!-- a top banner, not a full-canvas overlay — the map underneath must stay
-           clickable so tiles can still be bought and gods placed while waiting -->
-      <div id="waveGate" style="display:none;position:absolute;top:10px;left:10px;right:10px;background:var(--gold);color:#1a1508;border-radius:8px;padding:10px 14px;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,0.35);z-index:5;">
-        <div style="flex:1;">
-          <div id="waveGateLabel" style="font-family:var(--font-display);font-size:15px;font-weight:700;">웨이브 대기 중</div>
-          <div style="font-size:11.5px;opacity:0.85;">지금은 매매·배치만 가능 — 시작하면 첫 사건이 곧바로 터집니다.</div>
-        </div>
-        <button id="btnStartWave" style="font-size:13px;padding:8px 16px;background:#1a1508;color:var(--gold);border:none;border-radius:6px;font-weight:600;cursor:pointer;">다음 웨이브 시작</button>
-      </div>
-      <div class="maplegend">
-        <span class="legend-item"><span class="swatch" style="background:var(--path)"></span>몬스터 경로</span>
-        <span class="legend-item"><span class="swatch" style="background:var(--tile-owned)"></span>보유 신전</span>
-        <span class="legend-item"><span class="swatch" style="background:var(--tile)"></span>미보유 신전</span>
-        <span class="legend-item"><span class="swatch" style="background:#e0645a;border-radius:50%"></span>몬스터</span>
-        <span class="legend-item"><span class="swatch" style="background:#c9a15a;border-radius:50%"></span>보스</span>
-        <span class="legend-item"><span class="swatch" style="background:transparent;border:2px solid var(--select);width:6px;height:6px;"></span>선택한 타일</span>
-      </div>
-    </div>
-
-    <details class="panel" id="cheatPanel" style="grid-column:1/2;">
-      <summary style="cursor:pointer;font-family:var(--font-ui);font-weight:700;color:var(--gold);text-transform:uppercase;font-size:12px;letter-spacing:0.06em;">치트 패널 — 밸런스 조정</summary>
-      <div class="cheat-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;margin-top:12px;">
-        <label class="cheat-field">
-          <span>향화 (직접 조정)</span>
-          <input type="number" id="cheatCoin" step="100">
-        </label>
-        <label class="cheat-field">
-          <span>처치 보상 <small>(일반몬스터 1마리)</small></span>
-          <input type="number" id="cheatReward" min="1" step="10">
-        </label>
-        <label class="cheat-field">
-          <span>재앙 HP <small>(웨이브5 재앙)</small></span>
-          <input type="number" id="cheatBossHp" min="10" step="50">
-        </label>
-        <label class="cheat-field">
-          <span>몬스터 속도 <small>(칸/초)</small></span>
-          <input type="number" id="cheatSpeed" min="0.1" step="0.1">
-        </label>
-        <label class="cheat-field">
-          <span>신 발행상한 <small>(제우스 기준)</small></span>
-          <input type="number" id="cheatMaxQty" min="1" step="1">
-        </label>
-        <label class="cheat-field">
-          <span>신 공격력 <small>(제우스 1주 기준)</small></span>
-          <input type="number" id="cheatDmg" min="1" step="1">
-        </label>
-      </div>
-      <div style="margin-top:8px;"><button class="small" id="cheatReset">기본값으로</button></div>
-    </details>
-
-    <div class="sidebar">
-      <div class="panel" id="tilePanel">
-        <h2>선택한 신전</h2>
-        <div class="tileinfo" id="tileInfo"><div class="empty-hint">타일을 클릭해 구매하거나 신을 배치하세요.</div></div>
-        <div class="godpick" id="godPick"></div>
-      </div>
-
-      <div class="panel">
-        <h2>신탁</h2>
-        <div class="oracle-card" id="oracleCard"><span class="oracle-meta">일반 등급 · 무료</span>미래의 사건 정보를 엿볼 수 있습니다.</div>
-        <div style="display:flex;gap:6px;">
-          <button class="small" id="btnOraclePaid">향화 60으로 정밀 신탁</button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2>갓스닥 (GADSDAQ)</h2>
-        <div class="godlist" id="godList"></div>
-      </div>
-
-      <div class="panel">
-        <h2>세계 기록</h2>
-        <div class="log" id="log"></div>
-      </div>
-    </div>
-  </div>
-
-  <footer>몬스터 4종 + 사건 20종(원문 46종 중 대표 샘플) + 신 10종 데이터는 <code>Doc/</code> 원본 시트를 기준으로 구현. WS 점수식은 가산식으로, 하데스 영혼 임계값은 데이터필드(50) 기준으로 확정.</footer>
-</div>
-
-<div id="resultOverlay" style="display:none;position:fixed;inset:0;background:rgba(11,13,18,0.82);z-index:50;align-items:center;justify-content:center;">
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:32px 36px;max-width:440px;width:90%;display:flex;flex-direction:column;gap:16px;">
-    <div>
-      <div id="resultHeadline" style="font-family:var(--font-display);font-size:26px;font-weight:700;"></div>
-      <div id="resultSub" style="color:var(--muted);font-size:13px;margin-top:4px;"></div>
-    </div>
-    <div id="resultStats" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;font-size:13px;"></div>
-    <div id="resultGrade" style="background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:13px;line-height:1.6;"></div>
-    <button class="primary" onclick="location.reload()" style="align-self:flex-start;">다시 시작</button>
-  </div>
+  <footer>신 10종 · 사건 20종 데이터는 원본 시트 기준. 새 플로우(비전투 허브 → 로스터 세팅 → 자동 전투 → 결과)로 재구성.</footer>
 </div>
 
 <script>
 "use strict";
-
-/* ============================== DATA ============================== */
-
+/* ===================== DATA (원본 시트 이식) ===================== */
 const WS_DEFS = [
-  {id:1, name:"전쟁", en:"War", min:0, max:100},
-  {id:2, name:"풍요", en:"Abundance", min:0, max:100},
-  {id:3, name:"기술", en:"Tech", min:0, max:100},
-  {id:4, name:"문화", en:"Culture", min:0, max:100},
-  {id:5, name:"인류밀집", en:"Density", min:0, max:100},
-  {id:6, name:"신앙", en:"Faith", min:0, max:100},
-  {id:7, name:"인류의 수", en:"Population", min:20, max:9999},
+  {id:1,name:"전쟁"},{id:2,name:"풍요"},{id:3,name:"기술"},{id:4,name:"문화"},
+  {id:5,name:"인류밀집"},{id:6,name:"신앙"},{id:7,name:"인류의 수"},
 ];
-
-// 10 gods table (신.html) — skill IDs corrected per judgment calls documented in CLAUDE.md
+const WS_MIN={1:0,2:0,3:0,4:0,5:0,6:0,7:20}, WS_MAX={1:100,2:100,3:100,4:100,5:100,6:100,7:9999};
 const GODS = [
-  {id:1, name:"Zeus",      kr:"제우스",    dmg:10, atkSpd:10, range:2, atkType:0, basePrice:500,  maxQty:50, coreWS:5, corr:0, skill:"기본 공격이 주변 2명을 추가 타격", icon:"⚡", color:"#f0c34d"},
-  {id:2, name:"Poseidon",  kr:"포세이돈",  dmg:15, atkSpd:5,  range:4, atkType:0, basePrice:500,  maxQty:50, coreWS:2, corr:1, skill:"10초마다 해일 소환, 5기 관통 500% 피해", icon:"🔱", color:"#4a90c9"},
-  {id:3, name:"Hades",     kr:"하데스",    dmg:10, atkSpd:12, range:3, atkType:1, basePrice:500,  maxQty:50, coreWS:1, corr:0, skill:"영혼 50개 모으면 전체 800% 피해", icon:"💀", color:"#8a6bc4"},
-  {id:4, name:"Demeter",   kr:"데메테르",  dmg:10, atkSpd:5,  range:4, atkType:0, basePrice:400,  maxQty:60, coreWS:2, corr:0, skill:"범위 내 몬스터 이동속도 30% 감소", icon:"🌾", color:"#9aa53f"},
-  {id:5, name:"Athena",    kr:"아테나",    dmg:10, atkSpd:10, range:1, atkType:0, basePrice:400,  maxQty:60, coreWS:4, corr:0, skill:"범위 내 신 공격력 +10%", icon:"🦉", color:"#8f98ac"},
-  {id:6, name:"Apollo",    kr:"아폴론",    dmg:10, atkSpd:10, range:5, atkType:0, basePrice:400,  maxQty:60, coreWS:4, corr:0, skill:"공격시 화상(초당 5% 피해, 최대3중첩)", icon:"☀️", color:"#e0912c"},
-  {id:7, name:"Artemis",   kr:"아르테미스",dmg:5,  atkSpd:20, range:3, atkType:2, basePrice:400,  maxQty:60, coreWS:2, corr:0, skill:"동일 대상 공격시 피해 +5%씩 누적", icon:"🏹", color:"#5fae7c"},
-  {id:8, name:"Aphrodite", kr:"아프로디테",dmg:10, atkSpd:10, range:3, atkType:0, basePrice:400,  maxQty:60, coreWS:5, corr:0, skill:"범위 내 몬스터 받는 피해 +10%", icon:"🌹", color:"#d97b95"},
-  {id:9, name:"Hermes",    kr:"헤르메스",  dmg:5,  atkSpd:20, range:3, atkType:0, basePrice:1000, maxQty:20, coreWS:3, corr:0, skill:"신탁 구매가 -20%", icon:"🪽", color:"#4fb0a6"},
-  {id:10,name:"Ares",      kr:"아레스",    dmg:10, atkSpd:13, range:2, atkType:1, basePrice:400,  maxQty:60, coreWS:1, corr:1, skill:"인접 10칸 내 신 없으면 공속 +10", icon:"⚔️", color:"#c05a4a"},
+  {id:1, kr:"제우스", dmg:10, atkSpd:10, range:2, atkType:0, basePrice:500, coreWS:5, corr:0, skill:"기본 공격이 주변 2명을 추가 타격", icon:"⚡", color:"#f0c34d"},
+  {id:2, kr:"포세이돈", dmg:15, atkSpd:5, range:4, atkType:0, basePrice:500, coreWS:2, corr:1, skill:"10초마다 해일 소환, 5기 관통 500% 피해", icon:"🔱", color:"#4a90c9"},
+  {id:3, kr:"하데스", dmg:10, atkSpd:12, range:3, atkType:1, basePrice:500, coreWS:1, corr:0, skill:"영혼 50개 모으면 전체 800% 피해", icon:"💀", color:"#8a6bc4"},
+  {id:4, kr:"데메테르", dmg:10, atkSpd:5, range:4, atkType:0, basePrice:400, coreWS:2, corr:0, skill:"범위 내 몬스터 이동속도 30% 감소", icon:"🌾", color:"#9aa53f"},
+  {id:5, kr:"아테나", dmg:10, atkSpd:10, range:1, atkType:0, basePrice:400, coreWS:4, corr:0, skill:"범위 내 신 공격력 +10%", icon:"🦉", color:"#8f98ac"},
+  {id:6, kr:"아폴론", dmg:10, atkSpd:10, range:5, atkType:0, basePrice:400, coreWS:4, corr:0, skill:"공격시 화상(초당 5% 피해)", icon:"☀️", color:"#e0912c"},
+  {id:7, kr:"아르테미스", dmg:5, atkSpd:20, range:3, atkType:2, basePrice:400, coreWS:2, corr:0, skill:"동일 대상 공격시 피해 +5% 누적", icon:"🏹", color:"#5fae7c"},
+  {id:8, kr:"아프로디테", dmg:10, atkSpd:10, range:3, atkType:0, basePrice:400, coreWS:5, corr:0, skill:"범위 내 몬스터 받는 피해 +10%", icon:"🌹", color:"#d97b95"},
+  {id:9, kr:"헤르메스", dmg:5, atkSpd:20, range:3, atkType:0, basePrice:1000, coreWS:3, corr:0, skill:"정보 구매가 -20%", icon:"🪽", color:"#4fb0a6"},
+  {id:10,kr:"아레스", dmg:10, atkSpd:13, range:2, atkType:1, basePrice:400, coreWS:1, corr:1, skill:"인접에 신 없으면 공속 +10", icon:"⚔️", color:"#c05a4a"},
 ];
-
-// monster table (몬스터.html) — HpRate/SpeedRate/ResistRate/RewardRate are % of wave base
-const MONSTERS = {
-  1:      {types:0, hpRate:100,  spdRate:120, resRate:100, rwdRate:100, boss:false, label:"수하"},
-  2:      {types:8, hpRate:80,   spdRate:80,  resRate:100, rwdRate:100, boss:false, label:"잔류자"},
-  // Boss HpRate here is a deliberate DEMO-BALANCE deviation from the raw
-  // 몬스터.html example rows (3000%/5000%, i.e. 30-50x a normal monster).
-  // CLAUDE.md already flags those as unbalanced placeholder/schema-example
-  // values, not tuned numbers — taken literally, a wave-5 boss has ~4200 HP,
-  // which no realistic early-game investment can burn down in a 30s window
-  // (the wave just times out every run). Scaled down to something a player
-  // who's been trading/placing gods since wave 1 can plausibly clear.
-  100001: {types:3, hpRate:500, spdRate:100, resRate:60,  rwdRate:5000,boss:true,  label:"재앙 I"},
-  100002: {types:5, hpRate:800, spdRate:100, resRate:60,  rwdRate:5000,boss:true,  label:"재앙 II"},
-};
-
-// wave table (웨이브.html) — prototype 10 waves.
-// BaseRewardAmount is DEMO-BALANCE-TUNED: the raw sheet value is a flat 10
-// for every wave (normal-monster RewardAmountRate=100%, so literally 10
-// coin/kill). Against a 400+ base share price, a perfect wave-1 clear
-// (~15 kills) nets ~150 coin — under one share of the cheapest god. Combat
-// income is effectively irrelevant next to the starting 2000 seed money,
-// which isn't a deliberate "invest your seed, don't grind" design so much
-// as an unbalanced placeholder (see CLAUDE.md's notes on the source table
-// being schema-example data, not tuned numbers). Scaled 6x so clearing a
-// wave meaningfully funds the next purchase alongside trading gains.
-const WAVES = [
-  {n:1, time:30, over:90, type:"Normal", m1:1, i1:2.0,  baseHP:100, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:2, time:30, over:90, type:"Normal", m1:1, i1:2.0,  baseHP:110, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:3, time:30, over:90, type:"Normal", m1:1, i1:2.0,  baseHP:120, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:4, time:30, over:90, type:"Normal", m1:1, i1:2.0,  baseHP:130, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:5, time:30, over:90, type:"Boss",   m1:100001, i1:null, baseHP:140, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:6, time:30, over:90, type:"Normal", m1:2, i1:1.5,  baseHP:150, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:7, time:30, over:90, type:"Normal", m1:2, i1:1.5,  baseHP:160, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:8, time:30, over:90, type:"Normal", m1:2, i1:1.5,  baseHP:170, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:9, time:30, over:90, type:"Normal", m1:2, i1:1.5,  baseHP:180, baseSpd:2, baseRes:1, baseRwd:60},
-  {n:10,time:30, over:90, type:"Boss",   m1:100002, i1:null, baseHP:190, baseSpd:2, baseRes:1, baseRwd:60},
-];
-
-// events (사건.html) — representative subset of the 46 rows, schema-faithful
-// effWS: [[ids],value] ; afterFx: {wave, ids, value} ; effGod: [[godIds],value]
+const godById = id => GODS.find(g=>g.id===id);
 const EVENTS = [
-  {id:1, desc:"국가간에 소규모 분쟁이 발생하였습니다. 지혜로운 누군가의 중재를 바라고 있습니다.", cond:null, w:50, cause:[[1,30],[5,30]], effWS:[[[1],10]], effGod:[[[5,10],10]]},
-  {id:2, desc:"메뚜기떼가 등장하였습니다. 농작물들을 모두 먹어 치우고 있습니다.", cond:null, w:50, cause:[], effWS:[[[2,5,7],-20],[[6],10]], effGod:[[[4],-10],[[3],5]]},
-  {id:3, desc:"폭우로 인해 홍수가 났습니다. 홍수로 피해를 입었지만 양질의 토양이 충전됩니다.", cond:null, w:50, cause:[], effWS:[[[2,5,7],-10],[[6],10]], after:{wave:3, ids:[2], value:15}, effGod:[[[1],15],[[3],5]]},
-  {id:4, desc:"농사가 대 풍년을 맞이하였습니다. 곳간에는 음식이 넘쳐납니다.", cond:null, w:70, cause:[[3,20]], effWS:[[[2,5,7],10],[[6],10]], effGod:[[[4],20],[[6],10]]},
+  {id:1, desc:"국가간에 소규모 분쟁이 발생하였습니다.", cond:null, w:50, cause:[[1,30],[5,30]], effWS:[[[1],10]], effGod:[[[5,10],10]]},
+  {id:2, desc:"메뚜기떼가 농작물을 먹어 치우고 있습니다.", cond:null, w:50, cause:[], effWS:[[[2,5,7],-20],[[6],10]], effGod:[[[4],-10],[[3],5]]},
+  {id:3, desc:"폭우로 홍수가 났지만 양질의 토양이 충전됩니다.", cond:null, w:50, cause:[], effWS:[[[2,5,7],-10],[[6],10]], effGod:[[[1],15],[[3],5]]},
+  {id:4, desc:"농사가 대 풍년을 맞이하였습니다.", cond:null, w:70, cause:[[3,20]], effWS:[[[2,5,7],10],[[6],10]], effGod:[[[4],20],[[6],10]]},
   {id:5, desc:"큰 폭풍으로 바다에 나간 배들이 침몰되었습니다.", cond:null, w:50, cause:[], effWS:[[[2],-15]], effGod:[[[2],-10],[[3],10]]},
   {id:6, desc:"어선의 수확량이 크게 증가했습니다.", cond:null, w:70, cause:[[3,20]], effWS:[[[2],20]], effGod:[[[2],20],[[4],10]]},
-  {id:7, desc:"축제가 성황리에 열렸습니다. 모두 술과 고기를 먹으며 신나는 날을 보냅니다.", cond:[2,0,80], w:100, cause:[[2,30],[4,20]], effWS:[[[4],10]], after:{wave:2, ids:[7], value:10}, effGod:[[[4,8],10],[[10],-10]]},
-  {id:8, desc:"야생동물이 늘어났습니다. 길의 치안이 나빠졌고, 도시간의 소통이 마비되었습니다.", cond:null, w:50, cause:[], effWS:[[[2,3,4],-10]], after:{wave:3, ids:[1], value:10}, effGod:[[[9],-20],[[7],10]]},
-  {id:9, desc:"신작 영웅 서사시가 유행합니다. 사람들은 모두 문학 작품에 빠져듭니다.", cond:null, w:50, cause:[[4,30]], effWS:[[[5],-10],[[4],10]], after:{wave:3, ids:[1], value:10}, effGod:[[[1],20],[[6],10]]},
-  {id:10, desc:"새로운 천문학 이론이 나왔습니다. 많은 사람들이 미지에서 벗어났습니다.", cond:null, w:50, cause:[[3,30]], effWS:[[[3],10],[[6],-10]], effGod:[[[9],10],[[1,2,3,4,5,6,7,8,10],-20]]},
-  {id:13, desc:"대규모 전쟁이 발발합니다. 두 국가는 명운을 건 승부를 펼칩니다.", cond:[1,0,70], w:100, cause:[[1,50]], effWS:[[[1],20],[[5,6,2],-20]], after:{wave:2, ids:[3], value:10}, effGod:[[[10],20]]},
-  {id:14, desc:"국가가 다른 국가에 점령당하였습니다. 패배한 국가의 국민들에게는 강한 탄압이 가해집니다.", cond:[1,0,90], w:100, cause:[[1,50]], effWS:[[[1],-70],[[3,4],-20]], effGod:[[[3],15],[[8],-10]]},
+  {id:7, desc:"축제가 성황리에 열렸습니다.", cond:[2,0,80], w:100, cause:[[2,30],[4,20]], effWS:[[[4],10]], effGod:[[[4,8],10],[[10],-10]]},
+  {id:8, desc:"야생동물이 늘어 도시간 소통이 마비되었습니다.", cond:null, w:50, cause:[], effWS:[[[2,3,4],-10]], effGod:[[[9],-20],[[7],10]]},
+  {id:9, desc:"신작 영웅 서사시가 유행합니다.", cond:null, w:50, cause:[[4,30]], effWS:[[[5],-10],[[4],10]], effGod:[[[1],20],[[6],10]]},
+  {id:10, desc:"새로운 천문학 이론이 나왔습니다.", cond:null, w:50, cause:[[3,30]], effWS:[[[3],10],[[6],-10]], effGod:[[[9],10],[[1,2,3,4,5,6,7,8,10],-20]]},
+  {id:13, desc:"대규모 전쟁이 발발합니다.", cond:[1,0,70], w:100, cause:[[1,50]], effWS:[[[1],20],[[5,6,2],-20]], effGod:[[[10],20]]},
+  {id:14, desc:"국가가 다른 국가에 점령당하였습니다.", cond:[1,0,90], w:100, cause:[[1,50]], effWS:[[[1],-70],[[3,4],-20]], effGod:[[[3],15],[[8],-10]]},
   {id:15, desc:"치사율이 높은 전염병이 돌기 시작합니다.", cond:null, w:50, cause:[[5,50]], effWS:[[[2,5,7],-20],[[3,6],10]], effGod:[[[3],20],[[6],10]]},
-  {id:17, desc:"새로운 의학 기술이 발달합니다. 수많은 사람들이 죽지 않고 살아남게 되었습니다.", cond:null, w:100, cause:[[3,60]], effWS:[[[2,5,7],30],[[6],-10]], after:{wave:2, ids:[7], value:10}, effGod:[[[6],20],[[3],-20],[[1,2,4,5,6,7,8,10],-10]]},
-  {id:22, desc:"전쟁중인 국가사이에 평화 협정을 맺었습니다. 사람들은 환호합니다.", cond:[1,0,90], w:100, cause:[[1,50]], effWS:[[[1],-70]], effGod:[[[10],-30]]},
-  {id:24, desc:"올림피아 제전이 열립니다. 모든 국가가 무기를 내려놓고 평화롭게 축제를 즐깁니다.", cond:[2,0,50], w:50, cause:[], effWS:[[[2,5],10],[[1],-10]], effGod:[[[10],-10],[[3],-5],[[1],10]]},
-  {id:28, desc:"해적이 창궐하고 있습니다. 바다를 통한 교역은 힘들어졌습니다.", cond:[2,1,50], w:100, cause:[], effWS:[[[2,3,4],-20]], effGod:[[[2],-20],[[9],-10]]},
-  {id:33, desc:"신앙에 맞지 않는 기술을 발전시킨 기술자들이 크게 탄압받기 시작합니다.", cond:[3,0,70], w:100, cause:[[3,50]], effWS:[[[3],-30],[[6],20]], effGod:[[[9],-10],[[3],5]]},
-  {id:39, desc:"일식이 발생하였습니다. 사람들은 이상현상에 다양한 미래를 예언합니다.", cond:null, w:50, cause:[], effWS:[[[7],20]], effGod:[[[7],30],[[6],-30]]},
-  {id:40, desc:"월식이 발생하였습니다. 사람들은 이상현상에 다양한 미래를 예언합니다.", cond:null, w:50, cause:[], effWS:[[[7],20]], effGod:[[[7],-30],[[6],30]]},
-  {id:42, desc:"사치품이 유행합니다. 빈부 격차가 더욱 증가하고 계층 갈등이 심화됩니다.", cond:[2,0,70], w:200, cause:[], effWS:[[[2],-10],[[1],10]], effGod:[[[8],20]]},
+  {id:17, desc:"새로운 의학 기술이 발달합니다.", cond:null, w:100, cause:[[3,60]], effWS:[[[2,5,7],30],[[6],-10]], effGod:[[[6],20],[[3],-20]]},
+  {id:22, desc:"전쟁중인 국가사이에 평화 협정을 맺었습니다.", cond:[1,0,90], w:100, cause:[[1,50]], effWS:[[[1],-70]], effGod:[[[10],-30]]},
+  {id:24, desc:"올림피아 제전이 열립니다.", cond:[2,0,50], w:50, cause:[], effWS:[[[2,5],10],[[1],-10]], effGod:[[[10],-10],[[3],-5],[[1],10]]},
+  {id:28, desc:"해적이 창궐해 바다 교역이 힘들어졌습니다.", cond:[2,1,50], w:100, cause:[], effWS:[[[2,3,4],-20]], effGod:[[[2],-20],[[9],-10]]},
+  {id:33, desc:"신앙에 맞지 않는 기술자들이 탄압받습니다.", cond:[3,0,70], w:100, cause:[[3,50]], effWS:[[[3],-30],[[6],20]], effGod:[[[9],-10],[[3],5]]},
+  {id:39, desc:"일식이 발생하였습니다.", cond:null, w:50, cause:[], effWS:[[[7],20]], effGod:[[[7],30],[[6],-30]]},
+  {id:42, desc:"사치품이 유행해 계층 갈등이 심화됩니다.", cond:[2,0,70], w:200, cause:[], effWS:[[[2],-10],[[1],10]], effGod:[[[8],20]]},
 ];
 
-/* ============================== MAP / PATH ==============================
- * Per 인게임 사양.html §1: tiles have gaps between them and monsters travel
- * THROUGH those gaps — the path runs along tile-grid intersections (vertices),
- * not through tile centers. We model this as: a connected "blob" of enclosed
- * cells, and the monster path is the outer boundary (the vertex loop) traced
- * around that blob — this is literally what §1-C-2 describes for the 5-wave
- * reshuffle ("타일리스트를 둘러싸는 경로를 연결한다"), and it doubles as a
- * robust way to generate the *initial* loop too (guarantees a single closed,
- * non-self-crossing loop with no internal hole, which the spec's random-walk
- * algorithm has to explicitly check for after the fact).
- * ========================================================================= */
+const MONSTERS = {
+  rat:{kr:"쥐", hp:1.0, spd:0.9, reward:1.0, desc:"이동 속도가 느리고 체력도 적지만 많은 숫자가 등장합니다."},
+  bird:{kr:"새", hp:0.7, spd:1.5, reward:1.1, desc:"이동 속도가 빠르지만 체력이 적습니다."},
+};
+const BOSSES = ["메두사","미노타우로스","키클롭스","히드라","케르베로스","티폰","크로노스","기간테스","타나토스","카오스"];
 
-const GRID = 9;           // 9x9 tile grid, vertices run 0..GRID on each axis
-const MUTATE_EVERY = 5;   // path drifts every 5 waves, matching a calamity(boss) wave
-
-let BLOB = new Set();      // "x,y" cell keys enclosed by the path loop (unownable)
-let LOOP = [];             // ordered vertex list [[vx,vy],...] tracing the loop, clockwise
-let START_VERTEX = [0,0];  // loop[0]
-
-function cellKey(x,y){ return x+","+y; }
-
-function neighborsOf(cellSet, x, y){
-  return [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].filter(([nx,ny])=>cellSet.has(cellKey(nx,ny)));
-}
-
-// build vertex adjacency for the boundary of a cell blob; returns null if the
-// boundary isn't a single simple polygon (e.g. a diagonal pinch produced a
-// degree-4 vertex) so the caller can retry with a different blob.
-function boundaryAdjacency(blob){
-  const adj = new Map();
-  function addEdge(v1,v2){
-    const k1=v1.join(','), k2=v2.join(',');
-    if(!adj.has(k1)) adj.set(k1,[]);
-    if(!adj.has(k2)) adj.set(k2,[]);
-    adj.get(k1).push(k2);
-    adj.get(k2).push(k1);
-  }
-  blob.forEach(key=>{
-    const [x,y]=key.split(',').map(Number);
-    if(!blob.has(cellKey(x,y-1))) addEdge([x,y],[x+1,y]);       // top
-    if(!blob.has(cellKey(x,y+1))) addEdge([x,y+1],[x+1,y+1]);   // bottom
-    if(!blob.has(cellKey(x-1,y))) addEdge([x,y],[x,y+1]);       // left
-    if(!blob.has(cellKey(x+1,y))) addEdge([x+1,y],[x+1,y+1]);   // right
-  });
-  for(const [,list] of adj){ if(list.length!==2) return null; }
-  return adj;
-}
-
-function traceLoop(adj){
-  const startKey = adj.keys().next().value;
-  const loop=[startKey];
-  let prev=null, cur=startKey;
-  while(true){
-    const [n0,n1] = adj.get(cur);
-    const next = n0===prev? n1 : n0;
-    if(next===startKey) break;
-    loop.push(next);
-    prev=cur; cur=next;
-  }
-  const pts = loop.map(k=>k.split(',').map(Number));
-  // ensure clockwise orientation (screen y-down: positive shoelace = clockwise)
-  let area=0;
-  for(let i=0;i<pts.length;i++){
-    const [x1,y1]=pts[i], [x2,y2]=pts[(i+1)%pts.length];
-    area += (x2-x1)*(y2+y1);
-  }
-  if(area<0) pts.reverse();
-  return pts;
-}
-
-function floodFillConnected(cellSet, start, bounds){
-  const seen = new Set([start]);
-  const stack=[start];
-  while(stack.length){
-    const k = stack.pop();
-    const [x,y]=k.split(',').map(Number);
-    [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].forEach(([nx,ny])=>{
-      if(nx<bounds.min||ny<bounds.min||nx>bounds.max||ny>bounds.max) return;
-      const nk=cellKey(nx,ny);
-      if(seen.has(nk)) return;
-      if((cellSet.has(nk))!==(cellSet.has(start))) return; // stay within same in/out class
-      seen.add(nk); stack.push(nk);
-    });
-  }
-  return seen;
-}
-
-// blob must be one connected piece and must not enclose a hole (an "outside"
-// pocket fully surrounded by blob cells) — both explicitly required by §1-C-2.
-function validBlob(blob){
-  if(blob.size<4) return false;
-  const first = [...blob][0];
-  const reached = floodFillConnected(blob, first, {min:-1,max:GRID+1});
-  if([...blob].some(k=>!reached.has(k))) return false; // disconnected
-  // any outside cell within the bounding box must be able to reach the outer border
-  const xs=[...blob].map(k=>+k.split(',')[0]), ys=[...blob].map(k=>+k.split(',')[1]);
-  const minX=Math.min(...xs)-1, maxX=Math.max(...xs)+1, minY=Math.min(...ys)-1, maxY=Math.max(...ys)+1;
-  const outsideSeed = cellKey(minX,minY);
-  const outsideReached = floodFillConnected(blob, outsideSeed, {min:minX-1,max:maxX+1});
-  for(let x=minX;x<=maxX;x++) for(let y=minY;y<=maxY;y++){
-    const k=cellKey(x,y);
-    if(!blob.has(k) && !outsideReached.has(k)) return false; // enclosed hole
-  }
-  return true;
-}
-
-function seedInitialBlob(){
-  const cx = 3+Math.floor(Math.random()*2), cy = 3+Math.floor(Math.random()*2);
-  const blob = new Set();
-  for(let x=cx;x<cx+3;x++) for(let y=cy;y<cy+3;y++) blob.add(cellKey(x,y));
-  return blob; // 3x3 => perimeter 12 (even, satisfies the "even path length" intent)
-}
-
-function rebuildLoopFrom(blob){
-  const adj = boundaryAdjacency(blob);
-  if(!adj) return false;
-  const loop = traceLoop(adj);
-  BLOB = blob;
-  LOOP = loop;
-  return true;
-}
-
-// spec gives no explicit cap, but an ever-growing blob would eventually eat
-// all buyable land — bound it to a sane band of the grid (min 4, ~1/3 of cells)
-// and let removeN/addN skew toward shrinking once oversized, growing once undersized.
-const BLOB_MIN = 4, BLOB_MAX = Math.floor(GRID*GRID*0.33);
-
-function mutatePath(){
-  const boundaryCells = [...BLOB].filter(k=>{
-    const [x,y]=k.split(',').map(Number);
-    return neighborsOf(BLOB,x,y).length<4;
-  });
-  const startCellKey = nearestBlobCellTo(START_VERTEX);
-  for(let attempt=0; attempt<20; attempt++){
-    const blob = new Set(BLOB);
-    const removable = boundaryCells.filter(k=>k!==startCellKey);
-    const overCap = BLOB.size>=BLOB_MAX;
-    const underCap = BLOB.size<=BLOB_MIN;
-    let removeN = Math.min(removable.length-3, 1+Math.floor(Math.random()*3));
-    if(underCap) removeN = 0;
-    else if(overCap) removeN = Math.min(removable.length-3, 2+Math.floor(Math.random()*2));
-    const removed = new Set();
-    for(let i=0;i<Math.max(0,removeN);i++){
-      const pick = removable[Math.floor(Math.random()*removable.length)];
-      if(removed.has(pick)) continue;
-      blob.delete(pick); removed.add(pick);
-    }
-    const addCandidates = new Set();
-    blob.forEach(k=>{
-      const [x,y]=k.split(',').map(Number);
-      [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].forEach(([nx,ny])=>{
-        const nk=cellKey(nx,ny);
-        if(nx<0||ny<0||nx>=GRID||ny>=GRID) return;
-        if(blob.has(nk)||removed.has(nk)||nk===startCellKey) return;
-        addCandidates.add(nk); // owned tiles may end up path-enclosed — that's fine, they're still valid shrines
-      });
-    });
-    let addPool=[...addCandidates];
-    if(overCap) addPool=[]; // stop growing once at the cap
-    const addN = Math.min(addPool.length, 1+Math.floor(Math.random()*3));
-    for(let i=0;i<addN;i++){
-      const idx = Math.floor(Math.random()*addPool.length);
-      blob.add(addPool.splice(idx,1)[0]);
-    }
-    if(!validBlob(blob)) continue;
-    if(!rebuildLoopFrom(blob)) continue;
-    // move start point 1-2 steps along the new loop from its nearest projection
-    let nearestIdx=0, best=Infinity;
-    LOOP.forEach(([vx,vy],i)=>{
-      const d=Math.hypot(vx-START_VERTEX[0],vy-START_VERTEX[1]);
-      if(d<best){best=d; nearestIdx=i;}
-    });
-    const shift = 1+Math.floor(Math.random()*2);
-    START_VERTEX = LOOP[(nearestIdx+shift)%LOOP.length];
-    return true;
-  }
-  return false; // give up this cycle, keep previous path (bounded-retry fallback)
-}
-
-function nearestBlobCellTo(vertex){
-  let best=null, bestD=Infinity;
-  BLOB.forEach(k=>{
-    const [x,y]=k.split(',').map(Number);
-    const d=Math.hypot(x+0.5-vertex[0], y+0.5-vertex[1]);
-    if(d<bestD){bestD=d; best=k;}
-  });
-  return best;
-}
-
-// initial generation
-(function initPath(){
-  for(let attempt=0; attempt<10; attempt++){
-    const blob = seedInitialBlob();
-    if(validBlob(blob) && rebuildLoopFrom(blob)) break;
-  }
-  START_VERTEX = LOOP[0];
-})();
-
-function tileAdjToPathCount(x,y){ return neighborsOf(BLOB,x,y).length; }
-function tileClusterPathCount(x,y,r){
-  let c=0;
-  for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){
-    if(Math.abs(dx)+Math.abs(dy)>r) continue;
-    if(BLOB.has(cellKey(x+dx,y+dy))) c++;
-  }
-  return c;
-}
-
-/* ============================== STATE ============================== */
-
+/* ===================== STATE ===================== */
+const TOTAL_WAVES=10, ROSTER_SLOTS=5, START_COIN=2000, BASE_POP=100, BASE_FAITH=50;
 const state = {
-  coin: 2000,
-  wave: 1,
-  waveElapsed: 0,
-  running: true,
-  speed: 1,
-  ws: Object.fromEntries(WS_DEFS.map(d=>[d.id, 50])),
-  wsBaselinePop: 100,
-  wsBaselineFaith: 50,
-  tiles: {},        // "x,y" -> {owned, purchasePrice, heldWaves, godId, shares}
-  godHoldings: Object.fromEntries(GODS.map(g=>[g.id,{shares:0, avgPrice:0}])),
-  godPrice: {},      // current price
-  godPrevPrice: {},  // for % change display
-  monsters: [],      // {id, hp, maxHp, spdCentis, resist, rwd, boss, pos: pathIndex float}
-  scheduledFx: [],   // [{wave, ids, value}]
-  usedEventsThisWave: new Set(),
-  spawnQueue: null,
-  oracleFreeUsed: false,
-  oracleReveal: null,
-  oracleTarget: null,
-  intermission: false,
-  selectedTile: null,
-  log: [],
-  gameOver: false,
-  hitFx: [],
-  kills: 0,
-  // debug/cheat multipliers — the balance-critical knobs surfaced in the
-  // cheat panel below the board. 1 = the already-tuned default from CHANGES.md.
-  cheat: { reward:1, bossHp:1, speed:1, maxQty:1, dmg:1 },
+  phase:"start",       // start | hub | godsdaq | oracle | news | setup | combat | result
+  wave:1,
+  coin:START_COIN,
+  ws:{1:50,2:50,3:50,4:50,5:50,6:50,7:BASE_POP},
+  holdings:{},          // godId -> {shares, avgPrice}
+  price:{}, prevPrice:{},
+  waveEvents:[],        // pre-rolled: waveEvents[w] = [eventId,...]
+  usedGlobally:new Set(),
+  roster:[],            // godId[] deployed this run (persists between waves)
+  ownedInfo:[],         // [{godId, wave, margin}]
+  sortKey:"price",
+  newsSeen:false,
+  lastResult:null,
+  bossName:"",
 };
 
-// seed starting real estate: the 4 tiles nearest the start point (§2/개요.html:
-// "시작점과 가장 가까운땅 주변 4칸을 시작 부동산으로 제공" — no exclusion for
-// path-enclosed tiles in the source; any tile is a valid shrine)
-function seedStartingTiles(){
-  const [sx,sy] = START_VERTEX;
-  const candidates=[];
-  for(let x=0;x<GRID;x++) for(let y=0;y<GRID;y++){
-    candidates.push([x,y,Math.hypot(x+0.5-sx,y+0.5-sy)]);
-  }
-  candidates.sort((a,b)=>a[2]-b[2]);
-  candidates.slice(0,4).forEach(([x,y])=>{
-    state.tiles[x+","+y] = {owned:true, purchasePrice:0, heldWaves:99, godId:null, shares:0};
-  });
-}
-
-function tileKey(x,y){ return x+","+y; }
-function getTile(x,y){
-  const k=tileKey(x,y);
-  if(!state.tiles[k]) state.tiles[k] = {owned:false, purchasePrice:0, heldWaves:0, godId:null, shares:0};
-  return state.tiles[k];
-}
-
-function tilePrice(x,y){
-  const [sx,sy]=START_VERTEX;
-  const S = Math.max(0.6, Math.hypot(x+0.5-sx,y+0.5-sy));
-  const A = tileAdjToPathCount(x,y);
-  const B = tileClusterPathCount(x,y,2);
-  const C = tileClusterPathCount(x,y,3);
-  return Math.round(100*state.wave + 100/S + 6*A + 3*B + C);
-}
-function tileSellPrice(t){
-  return Math.round(t.purchasePrice * (50 + 10*Math.min(t.heldWaves,5)) / 100);
-}
-
-/* ---- god pricing (WS ids corrected: population=7, faith=6 per judgment call) ---- */
-function wsMid(id){
-  const d = WS_DEFS.find(w=>w.id===id);
-  const max = d.max>1000? 100 : d.max; // population uncapped -> use nominal 100 midpoint reference
-  return (d.min+max)/2;
-}
-function priceMultiplierM(){
-  const pop = state.ws[7], faith = state.ws[6];
-  return (pop/state.wsBaselinePop) * (faith/state.wsBaselineFaith);
-}
-function initGodPrices(){
-  const M = priceMultiplierM();
+/* ===================== PRICING (원본 §9.5 이식) ===================== */
+const wsMid = id => (WS_MIN[id] + (WS_MAX[id]>1000?100:WS_MAX[id]))/2;
+const clampWS = (id,v)=> Math.max(WS_MIN[id], WS_MAX[id]>1000? v : Math.min(WS_MAX[id],v));
+function absM(){ return (state.ws[7]/BASE_POP)*(state.ws[6]/BASE_FAITH); }
+function initPrices(){
+  const M=absM();
   GODS.forEach(g=>{
-    const cur = state.ws[g.coreWS];
-    const mid = wsMid(g.coreWS);
+    const cur=state.ws[g.coreWS], mid=wsMid(g.coreWS);
     const D = g.corr===0 ? (100+cur-mid)/100 : (100-cur+mid)/100;
-    const price = Math.max(10, Math.round(g.basePrice * D * M));
-    state.godPrice[g.id]=price;
-    state.godPrevPrice[g.id]=price;
+    const p=Math.max(10, Math.round(g.basePrice*D*M));
+    state.price[g.id]=p; state.prevPrice[g.id]=p;
   });
 }
-function repriceGodsOnEvent(affected){
-  // affected: Map(godId -> percentValue summed)
-  //
-  // 인게임 사양.html §9.5-B step 6 defines M *differently* here than in the
-  // initial-listing formula (§9.5-A): "M = (변경 후 인구수 / 기존 인구수) ×
-  // (초기 신앙값 / 기준 신앙값)" — a BEFORE/AFTER-this-event ratio, not the
-  // absolute current/baseline ratio §9.5-A uses. Reusing priceMultiplierM()
-  // (the absolute version) here was the real bug: `A` already has the
-  // absolute M baked in from the previous step, so multiplying by the
-  // absolute M *again* every single event compounded it — prices kept
-  // climbing ~50%/wave even on waves where population and faith didn't
-  // move at all, because the same M got re-applied regardless.
-  const popDelta = state.ws[7] / (state._lastPop || state.ws[7]);
-  const faithDelta = state.ws[6] / (state._lastFaith || state.ws[6]);
-  const M = popDelta * faithDelta;
-  GODS.forEach(g=>{
-    const A = state.godPrice[g.id];
-    const C = affected.get(g.id) || 0;
-    const cur = state.ws[g.coreWS];
-    const mid = wsMid(g.coreWS);
-    const D = g.corr===0 ? (100+cur-mid)/100 : (100-cur+mid)/100;
-    const newPrice = Math.max(10, Math.round(A * (1+C/100) * D * M / (state._lastD?.[g.id]||D)));
-    // godPrevPrice used to be set once at game start and never touched again,
-    // so the "%" badge in the GADSDAQ list was showing cumulative change
-    // since the opening listing price forever, not "change from the last
-    // move" like a real ticker. Snapshot the pre-event price here so the
-    // displayed % always reflects just this most recent repricing.
-    state.godPrevPrice[g.id] = A;
-    state.godPrice[g.id] = newPrice;
-  });
+/* level from shares: LV = shares; attack = dmg * LV * price/basePrice */
+function godLevel(id){ return state.holdings[id]?.shares || 0; }
+function godAttack(id){
+  const g=godById(id), lv=godLevel(id);
+  if(lv<=0) return 0;
+  return g.dmg * lv * (state.price[id]/g.basePrice);
 }
 
-function clampWS(id, v){
-  const d = WS_DEFS.find(w=>w.id===id);
-  return Math.max(d.min, d.max>1000? v : Math.min(d.max, v));
-}
-
-/* ============================== EVENTS ============================== */
-
-function eventEligible(ev){
-  if(state.usedEventsThisWave.has(ev.id)) return false;
-  if(ev.cond){
-    const [id,op,val] = ev.cond;
-    const cur = state.ws[id];
-    if(op===0 && !(cur>=val)) return false;
-    if(op===1 && !(cur<val)) return false;
-  }
+/* ===================== EVENT PRE-ROLL (원본 §4-D) ===================== */
+function eventEligible(ev,used){
+  if(used.has(ev.id)) return false;
+  if(ev.cond){ const [id,op,val]=ev.cond; const c=state.ws[id];
+    if(op===0 && !(c>=val)) return false; if(op===1 && !(c<val)) return false; }
   return true;
 }
-function eventWeight(ev){
-  let w = ev.w;
-  ev.cause.forEach(([id,val])=>{ w += state.ws[id]*(val/100); });
-  return Math.max(0, w);
-}
-function pickEvent(){
-  const pool = EVENTS.filter(eventEligible);
-  if(pool.length===0) return null;
-  const weights = pool.map(eventWeight);
-  const total = weights.reduce((a,b)=>a+b,0);
-  if(total<=0) return pool[Math.floor(Math.random()*pool.length)];
-  let r = Math.random()*total;
-  for(let i=0;i<pool.length;i++){ r-=weights[i]; if(r<=0) return pool[i]; }
+function eventWeight(ev){ let w=ev.w; ev.cause.forEach(([id,val])=>{ w+=state.ws[id]*(val/100); }); return Math.max(0,w); }
+function pickEvent(used){
+  const pool=EVENTS.filter(e=>eventEligible(e,used));
+  if(!pool.length) return null;
+  const ws=pool.map(eventWeight), tot=ws.reduce((a,b)=>a+b,0);
+  if(tot<=0) return pool[Math.floor(Math.random()*pool.length)];
+  let r=Math.random()*tot;
+  for(let i=0;i<pool.length;i++){ r-=ws[i]; if(r<=0) return pool[i]; }
   return pool[pool.length-1];
 }
-function applyEvent(ev){
-  state.usedEventsThisWave.add(ev.id);
-  // snapshot each god's WS-correlation factor BEFORE this event's WS deltas
-  // land — repriceGodsOnEvent needs the before/after ratio to reflect the
-  // score actually moving. Capturing it after the deltas (the old order)
-  // made "before" and "after" identical, so the ratio was always 1 and a
-  // god's own core-score swing never showed up in its price at all — only
-  // the event's direct EffectGodValue and the population/faith multiplier
-  // did, which is why prices only ever seemed to drift one direction.
-  state._lastD = {};
-  GODS.forEach(g=>{
-    const cur = state.ws[g.coreWS], mid = wsMid(g.coreWS);
-    state._lastD[g.id] = g.corr===0 ? (100+cur-mid)/100 : (100-cur+mid)/100;
-  });
-  state._lastPop = state.ws[7];
-  state._lastFaith = state.ws[6];
-  ev.effWS.forEach(([ids,val])=>{
-    ids.forEach(id=>{ state.ws[id] = clampWS(id, state.ws[id]+val); });
-  });
-  if(ev.after){
-    state.scheduledFx.push({wave: state.wave+ev.after.wave, ids: ev.after.ids, value: ev.after.value});
-  }
-  const affected = new Map();
-  ev.effGod.forEach(([ids,val])=>{
-    ids.forEach(id=>{ affected.set(id, (affected.get(id)||0)+val); });
-  });
-  repriceGodsOnEvent(affected);
-  pushLog(`[사건 #${ev.id}] ${ev.desc}`);
-}
-function processScheduledFx(){
-  const due = state.scheduledFx.filter(f=>f.wave===state.wave);
-  due.forEach(f=>{
-    f.ids.forEach(id=>{ state.ws[id]=clampWS(id, state.ws[id]+f.value); });
-    pushLog(`[지연 효과] WS${f.ids.join(',')} ${f.value>0?'+':''}${f.value}`);
-  });
-  state.scheduledFx = state.scheduledFx.filter(f=>f.wave!==state.wave);
-}
-
-let nextEventAt = 0;
-function planWaveEvents(){
-  state.usedEventsThisWave = new Set();
-  const w = WAVES[state.wave-1];
-  const count = 1 + Math.floor(Math.random()*2); // 1-2 events per wave (WaveEventMin/Max simplified)
-  state._waveEventCount = count;
-  state._waveEventInterval = w.time/count;
-  state._waveEventFired = 0;
-  nextEventAt = 0;
-  // §4-D: "the whole run's event sequence is decided before it plays out,
-  // only each event's numeric impact is computed when it actually fires."
-  // Roll the wave's real event sequence right now instead of waiting for
-  // tickEvents() to draw it live — otherwise the oracle preview and the
-  // event that actually fires are two independent random picks that just
-  // happen to agree sometimes. usedEventsThisWave gets populated here so
-  // the same event can't be drawn twice for this wave (still true when
-  // applyEvent() re-adds each id as it actually fires later).
-  state._waveEventQueue = [];
-  for(let i=0;i<count;i++){
-    const ev = pickEvent();
-    if(!ev) break;
-    state.usedEventsThisWave.add(ev.id);
-    state._waveEventQueue.push(ev);
+// pre-roll the whole run's events up front so the oracle can foresee them (§4-D)
+function prerollAllWaves(){
+  state.waveEvents = [null]; // 1-indexed
+  const used = new Set();
+  for(let w=1;w<=TOTAL_WAVES;w++){
+    const cnt = 1 + Math.floor(Math.random()*2);
+    const list=[];
+    for(let i=0;i<cnt;i++){ const e=pickEvent(used); if(!e) break; used.add(e.id); list.push(e.id); }
+    state.waveEvents[w]=list;
   }
 }
-// §4-D: the whole run's event sequence is decided before the game/wave
-// actually starts — only each event's numeric price impact is computed when
-// it fires. So "which event is coming" is knowable (and oracle-previewable)
-// the moment a wave becomes the upcoming one, not only once the player hits
-// the start button — matches the free oracle being visible immediately.
-function planUpcomingWave(){
-  planWaveEvents();
-  state.oracleReveal = null;
-  state.oracleTarget = null;
-  revealFreeOracle();
-}
-function tickEvents(dt){
-  if(state._waveEventFired>=state._waveEventCount) return;
-  if(state.waveElapsed>=nextEventAt){
-    const ev = state._waveEventQueue[state._waveEventFired]; // pre-rolled in planWaveEvents(), same list the oracle previews from
-    if(ev) applyEvent(ev);
-    state._waveEventFired++;
-    nextEventAt += state._waveEventInterval;
-  }
-}
-
-/* ============================== ORACLE ============================== */
-// 인게임 사양.html §4-H: rarity tiers only change *precision* (how exact the
-// timing is), not which event you're told about — free and paid oracle
-// pulls this wave must describe the SAME upcoming event, just with more or
-// less of the text/timing blurred out. Pick it once per wave and cache it.
-function getOracleTarget(){
-  if(state.oracleTarget) return state.oracleTarget;
-  // preview the next event actually queued for this wave — not an unrelated
-  // independent random pick, so what the oracle shows is what really happens
-  state.oracleTarget = state._waveEventQueue?.[state._waveEventFired] || null;
-  return state.oracleTarget;
-}
-function obscure(text, keepRatio){
-  const chars = [...text];
-  return chars.map(c=> (c===' '|| Math.random()<keepRatio) ? c : '■').join('');
-}
-
-/* ============================== MONSTERS / COMBAT ============================== */
-
-function spawnMonster(monsterId, wave){
-  const m = MONSTERS[monsterId];
-  let hp = Math.round(wave.baseHP * (m.hpRate/100));
-  if(m.boss) hp = Math.round(hp * state.cheat.bossHp);
-  const spd = Math.round(wave.baseSpd * (m.spdRate/100)); // spec-accurate derived "Speed" stat (kept for display/future balancing)
-  const res = Math.round(wave.baseRes * (m.resRate/100));
-  const rwd = Math.round(wave.baseRwd * (m.rwdRate/100) * state.cheat.reward);
-  state.monsters.push({
-    defId: monsterId, hp, maxHp:hp, spd:Math.max(1,spd), spdRate:m.spdRate, resist:res, rwd, boss:m.boss,
-    pathPos: 0, edgeT: 0, alive:true,
-  });
-}
-
-// monsters travel along LOOP, a vertex list tracing the gaps between tiles —
-// world coords are vertex (grid-intersection) coords, not tile centers.
-function monsterWorldXY(mon){
-  const i0 = Math.floor(mon.pathPos)%LOOP.length;
-  const i1 = (i0+1)%LOOP.length;
-  const [x0,y0]=LOOP[i0], [x1,y1]=LOOP[i1];
-  const t=mon.edgeT;
-  return [x0+(x1-x0)*t, y0+(y1-y0)*t];
-}
-
-// NOTE on pacing: the literal spec formula (Speed/100 = seconds to cross one
-// tile-edge) produces ~0.02s/edge for the example wave/monster values in the
-// sheet — a 12-edge loop in 0.24s. CLAUDE.md already flags the wave/monster
-// example rows as untuned placeholders, so rather than reproduce an unplayable
-// pace we scale a fixed prototype baseline by each monster's relative
-// SpeedRate, giving multi-second laps a stationary tower can actually contest.
-const EDGE_MS_BASE = 900;
-function edgeCrossMs(mon){ return (EDGE_MS_BASE * (100/Math.max(20,mon.spdRate))) / state.cheat.speed; }
-
-function moveMonsters(dtMs){
-  state.monsters.forEach(mon=>{
-    if(!mon.alive) return;
-    mon.edgeT += dtMs/edgeCrossMs(mon);
-    if(mon.edgeT>=1){
-      mon.edgeT=0;
-      mon.pathPos = (mon.pathPos+1);
-      if(Math.floor(mon.pathPos)%LOOP.length===0){
-        mon.hp = Math.min(mon.maxHp, mon.hp + mon.maxHp*0.10); // heal 10% on passing start
-      }
-    }
-  });
-  state.monsters = state.monsters.filter(m=>m.alive);
-}
-
-function placedGods(){
-  // share count is looked up LIVE from state.godHoldings, never snapshotted —
-  // a tile only ever remembers WHICH god is placed there, not how many
-  // shares it had at placement time. Selling every share of a placed god
-  // must make that tower stop existing, not keep fighting on a stale count.
-  const list=[];
-  Object.entries(state.tiles).forEach(([k,t])=>{
-    if(t.owned && t.godId){
-      const shares = state.godHoldings[t.godId].shares;
-      if(shares<=0){ t.godId=null; t._atkAcc=0; return; }
-      const [x,y]=k.split(',').map(Number);
-      list.push({x,y,def:GODS.find(g=>g.id===t.godId), shares, tileKey:k, tileObj:t});
-    }
-  });
-  return list;
-}
-
-let combatAcc = 0;
-function combatTick(dtMs){
-  combatAcc += dtMs;
-  const placed = placedGods();
-  placed.forEach(pg=>{
-    const g = pg.def;
-    const t = pg.tileObj; // attack cooldown must live on the persistent tile record,
-                           // not on `pg` — placedGods() rebuilds that wrapper every tick
-    const price = state.godPrice[g.id];
-    const atk = g.dmg * Math.max(1,pg.shares) * (price/g.basePrice) * state.cheat.dmg;
-    const atkIntervalMs = 1000/(g.atkSpd/10);
-    t._atkAcc = (t._atkAcc||0)+dtMs;
-    if(t._atkAcc<atkIntervalMs) return; // still cooling down — keep accumulating
-    // ready to fire: check for a target EVERY frame from here on (don't
-    // consume the cooldown on a frame with no target — a monster's in-range
-    // window can be much shorter than the attack interval, e.g. a fast
-    // monster passing a narrow range at a corner, so sampling only once per
-    // interval was missing almost every target and looked like "not attacking")
-    const inRange = state.monsters.filter(m=>{
-      const [mx,my]=monsterWorldXY(m); // vertex-space coords
-      return Math.hypot(mx-(pg.x+0.5), my-(pg.y+0.5)) <= g.range+0.5;
+// apply a wave's events to WS scores + reprice gods
+function applyWaveEvents(w){
+  (state.waveEvents[w]||[]).forEach(eid=>{
+    const ev=EVENTS.find(e=>e.id===eid); if(!ev) return;
+    // snapshot D + pop/faith BEFORE (원본 버그픽스 반영)
+    const lastD={}, lastPop=state.ws[7], lastFaith=state.ws[6];
+    GODS.forEach(g=>{ const cur=state.ws[g.coreWS],mid=wsMid(g.coreWS);
+      lastD[g.id]= g.corr===0?(100+cur-mid)/100:(100-cur+mid)/100; });
+    ev.effWS.forEach(([ids,val])=> ids.forEach(id=> state.ws[id]=clampWS(id,state.ws[id]+val)));
+    const affected=new Map();
+    ev.effGod.forEach(([ids,val])=> ids.forEach(id=> affected.set(id,(affected.get(id)||0)+val)));
+    const M=(state.ws[7]/lastPop)*(state.ws[6]/lastFaith);
+    GODS.forEach(g=>{
+      const A=state.price[g.id], C=affected.get(g.id)||0;
+      const cur=state.ws[g.coreWS],mid=wsMid(g.coreWS);
+      const D=g.corr===0?(100+cur-mid)/100:(100-cur+mid)/100;
+      state.prevPrice[g.id]=A;
+      state.price[g.id]=Math.max(10, Math.round(A*(1+C/100)*D*M/(lastD[g.id]||D)));
     });
-    if(!inRange.length) return; // stay "ready", try again next frame
-    t._atkAcc=0;
-    let target;
-    if(g.atkType===1) target = inRange.reduce((a,b)=>a.hp<b.hp?a:b);
-    else if(g.atkType===2) target = inRange.reduce((a,b)=>a.maxHp>b.maxHp?a:b);
-    else if(g.atkType===3) target = inRange[Math.floor(Math.random()*inRange.length)];
-    else target = inRange.reduce((a,b)=>a.pathPos>b.pathPos?a:b);
-    target.hp -= atk;
-    const [tmx,tmy] = monsterWorldXY(target);
-    state.hitFx.push({x1:pg.x+0.5, y1:pg.y+0.5, x2:tmx, y2:tmy, t:performance.now()});
-    if(state.hitFx.length>40) state.hitFx.shift();
-    if(target.hp<=0){
-      target.alive=false;
-      state.coin += target.rwd;
-      state.kills = (state.kills||0)+1;
-      if(target.boss) pushLog(`재앙 처치! +${target.rwd} 향화`);
-    }
   });
-  state.monsters = state.monsters.filter(m=>m.alive);
 }
 
-/* ============================== WAVE LOOP ============================== */
-
-function startWave(){
-  // NOTE: does NOT call planUpcomingWave()/planWaveEvents() — that already
-  // happened when this wave became "next up" (in init() for wave 1, in
-  // advanceWave() for every wave after), so the oracle preview shown during
-  // the whole waiting period matches what actually fires once this starts.
-  const w = WAVES[state.wave-1];
-  state.waveElapsed = 0;
-  state.monsters = [];
-  state._spawnTimer = 0;
-  processScheduledFx();
-  pushLog(`— 웨이브 ${w.n} 시작 (${w.type==='Boss'?'재앙':'일반'}) —`);
-}
-
-function waveSpawnTick(dtMs){
-  const w = WAVES[state.wave-1];
-  state._spawnTimer = (state._spawnTimer||0)+dtMs;
-  if(w.type==='Boss'){
-    if(state.monsters.length===0 && state.waveElapsed<0.1){
-      spawnMonster(w.m1, w);
-    }
-    return;
-  }
-  const interval = w.i1*1000;
-  if(state._spawnTimer>=interval){
-    state._spawnTimer=0;
-    if(state.monsters.length < w.over) spawnMonster(w.m1, w);
-  }
-}
-
-function endWaveCheck(){
-  const w = WAVES[state.wave-1];
-  if(w.type==='Boss'){
-    if(state.waveElapsed>=w.time){
-      const bossAlive = state.monsters.some(m=>m.boss);
-      if(bossAlive){ gameOver("재앙을 시간 내에 처치하지 못했습니다."); return true; }
-      advanceWave();
-      return true;
-    }
-  } else {
-    if(state.waveElapsed>=w.time){ advanceWave(); return true; }
-  }
-  if(state.monsters.length > w.over){ gameOver("신전에 몬스터가 가득 찼습니다."); return true; }
-  return false;
-}
-
-function advanceWave(){
-  const wasBoss = WAVES[state.wave-1].type==='Boss';
-  if(state.wave>=WAVES.length){ victory(); return; }
-  if(wasBoss){
-    // §1-C-2: the path drifts every time a calamity(boss wave) is cleared
-    if(mutatePath()) pushLog('재앙의 여파로 몬스터 경로가 이동했습니다.');
-  }
-  // don't auto-start the next wave: give the player a trading window at
-  // stable (no-new-events) prices, since the next wave's first event only
-  // fires once it actually begins — see startWave()/§4-E.
-  state.monsters = []; // the wave is over — don't leave frozen monsters on screen during the trading pause
-  state.intermission = true;
-  state.wave++;
-  planUpcomingWave(); // schedule + preview the wave that's now pending, before the player even asks
-  pushLog(`웨이브 ${state.wave} 준비 완료 — 매매/배치를 마치고 다음 웨이브를 시작하세요.`);
-  document.getElementById('waveGate').style.display='flex';
-  document.getElementById('waveGateLabel').textContent = `웨이브 ${state.wave} 대기 중`;
-  renderAll();
-}
-
-const START_COIN = 2000;
-
-function finalAssets(){
-  return state.coin + GODS.reduce((s,g)=>s+state.godHoldings[g.id].shares*state.godPrice[g.id],0);
-}
-
-function gradeRun(won, wave, growth){
-  if(!won){
-    if(wave<=2) return {label:"입문 단계", text:"아직 초반 웨이브입니다. 시작 신전에 신을 최소 1기는 배치하고 몇 주(share)를 매수해 화력을 먼저 확보해보세요."};
-    if(wave<=4) return {label:"기초 다지기 필요", text:"5웨이브 재앙 전에 화력이 부족했습니다. 신탁으로 다음 사건을 미리 보고 값이 오를 신을 먼저 사두면 도움이 됩니다."};
-    if(wave===5) return {label:"첫 관문에서 좌절", text:"5웨이브 재앙은 그동안 모은 화력을 시험하는 첫 고비입니다. 신을 한 곳에 몰지 말고 경로 여러 지점에 분산 배치해보세요."};
-    if(wave<=8) return {label:"선전했습니다", text:"절반 이상 돌파했습니다. 조금만 더 투자했다면 끝까지 갈 수 있었을 것 같습니다."};
-    return {label:"거의 다 왔습니다", text:"마지막 재앙 직전까지 갔습니다 — 근소한 차이로 클리어를 놓쳤습니다."};
-  }
-  if(growth>=3) return {label:"S등급 — 전설의 투자자", text:"시작 자산의 3배 이상으로 불리며 클리어했습니다. 신탁을 활용한 저점 매수·고점 매도가 제대로 통했습니다."};
-  if(growth>=2) return {label:"A등급 — 뛰어난 운용", text:"자산을 2배 이상 불리며 클리어했습니다. 훌륭한 시세 판단이었습니다."};
-  if(growth>=1.3) return {label:"B등급 — 안정적인 클리어", text:"자산을 불리며 안정적으로 클리어했습니다. 신탁 정보를 더 적극적으로 활용하면 다음엔 더 큰 수익을 노려볼 수 있습니다."};
-  if(growth>=1) return {label:"C등급 — 무난한 클리어", text:"방어에는 성공했지만 자산 증식은 크지 않았습니다. 이벤트로 값이 오를 신을 미리 사두는 전략을 시도해보세요."};
-  return {label:"클리어했지만 손실", text:"방어전은 이겼지만 투자 성과는 아쉬웠습니다 — 매도 타이밍을 놓쳤을 수 있습니다."};
-}
-
-function showResult(won, reason){
-  const assets = finalAssets();
-  const growth = assets/START_COIN;
-  const g = gradeRun(won, state.wave, growth);
-  document.getElementById('resultHeadline').textContent = won? '🏆 승리' : '💀 패배';
-  document.getElementById('resultHeadline').style.color = won? 'var(--up)' : 'var(--down)';
-  document.getElementById('resultSub').textContent = won
-    ? '프로토타입 10웨이브를 모두 방어했습니다.'
-    : reason;
-  document.getElementById('resultStats').innerHTML = `
-    <div><span style="color:var(--muted)">도달 웨이브</span><br><b class="num">${state.wave} / ${WAVES.length}</b></div>
-    <div><span style="color:var(--muted)">처치 수</span><br><b class="num">${fmt(state.kills||0)}</b></div>
-    <div><span style="color:var(--muted)">최종 자산</span><br><b class="num">${fmt(assets)}</b></div>
-    <div><span style="color:var(--muted)">자산 증감</span><br><b class="num" style="color:${growth>=1?'var(--up)':'var(--down)'}">${growth>=1?'+':''}${((growth-1)*100).toFixed(0)}%</b></div>
-  `;
-  document.getElementById('resultGrade').innerHTML = `<b style="color:var(--gold)">${g.label}</b><br>${g.text}`;
-  document.getElementById('resultOverlay').style.display='flex';
-}
-
-function gameOver(reason){
-  state.running=false; state.gameOver=true;
-  pushLog(`💀 게임 종료 — ${reason} (도달 웨이브 ${state.wave})`);
-  showResult(false, reason);
-}
-function victory(){
-  state.running=false; state.gameOver=true;
-  pushLog(`🏆 클리어! 프로토타입 10웨이브를 모두 방어했습니다.`);
-  showResult(true, '');
-}
-
-/* ============================== TRADING ============================== */
-
-function buyGod(godId, qty){
-  const g = GODS.find(x=>x.id===godId);
-  const price = state.godPrice[godId];
-  const h = state.godHoldings[godId];
-  // 신.html MaxQuantity — total issued shares are finite (Zeus/Poseidon/Hades
-  // 50, mid-tier gods 60, Hermes 20). This was never enforced, which is what
-  // let one god be bought without limit — money was the only constraint.
-  const cap = Math.round(g.maxQty * state.cheat.maxQty);
-  qty = Math.min(qty, cap - h.shares);
-  if(qty<=0) return false;
-  const cost = price*qty;
+/* ===================== TRADING ===================== */
+function buy(id,qty=1){
+  const p=state.price[id], cost=p*qty;
   if(state.coin<cost) return false;
-  h.avgPrice = h.shares===0? price : (h.avgPrice*h.shares + cost)/(h.shares+qty);
-  h.shares += qty;
-  state.coin -= cost;
+  const h = state.holdings[id] || (state.holdings[id]={shares:0,avgPrice:0});
+  h.avgPrice = h.shares===0? p : (h.avgPrice*h.shares + cost)/(h.shares+qty);
+  h.shares+=qty; state.coin-=cost;
   return true;
 }
-function sellGod(godId, qty){
-  const h = state.godHoldings[godId];
-  if(h.shares<qty) return false;
-  const price = state.godPrice[godId];
-  h.shares -= qty;
-  state.coin += price*qty;
-  if(h.shares===0) h.avgPrice=0;
+function sell(id,qty=1){
+  const h=state.holdings[id]; if(!h||h.shares<qty) return false;
+  h.shares-=qty; state.coin+=state.price[id]*qty;
+  if(h.shares===0){ h.avgPrice=0; state.roster=state.roster.filter(r=>r!==id); }
   return true;
 }
 
-/* ============================== TILE / PLACEMENT UI ============================== */
-
-function selectTile(x,y){
-  state.selectedTile = [x,y];
-  renderTilePanel();
-}
-function buyTile(x,y){
-  const t = getTile(x,y);
-  const price = tilePrice(x,y);
-  if(state.coin<price) return;
-  state.coin -= price;
-  t.owned=true; t.purchasePrice=price; t.heldWaves=0;
-  renderAll();
-}
-function sellTile(x,y){
-  const t = getTile(x,y);
-  if(!t.owned) return;
-  const sp = tileSellPrice(t);
-  state.coin += sp;
-  if(t.godId){ /* keep shares owned by player globally, just unplace */ }
-  state.tiles[tileKey(x,y)] = {owned:false, purchasePrice:0, heldWaves:0, godId:null, shares:0};
-  renderAll();
-}
-function placeGod(x,y,godId){
-  const t = getTile(x,y);
-  if(!t.owned) return;
-  const h = state.godHoldings[godId];
-  if(h.shares<=0) return;
-  // judgment call (no explicit rule in the source docs): attack power is defined
-  // as a function of TOTAL owned shares, not a per-instance allocation, so
-  // letting the same god sit on N tiles would let each copy hit at full power
-  // simultaneously — an obvious exploit, and it contradicts 개요.html's framing
-  // of squad-building as combining *different* gods. So each god may occupy
-  // only one tile at a time.
-  const destKey = tileKey(x,y);
-  const displacedGodId = t.godId; // whoever currently sits on the destination tile, if anyone
-  let sourceTile = null;
-  Object.entries(state.tiles).forEach(([k,ot])=>{
-    if(ot.owned && ot.godId===godId && k!==destKey) sourceTile = ot;
-  });
-  if(sourceTile){
-    // relocating an already-placed god: if the destination is occupied by a
-    // *different* god, send that one back to where the mover came from
-    // (a swap) instead of just bumping it off the board.
-    sourceTile.godId = (displacedGodId && displacedGodId!==godId) ? displacedGodId : null;
-    sourceTile._atkAcc = 0;
+/* ===================== ORACLE (오차범위 정보 — 신탁 개선) ===================== */
+// build sellable info: for each future event, offer a card revealing the wave
+// it happens on, blurred by an error margin. Premium ±1 (정확), cheap ±3 (부정확).
+function sellableInfo(){
+  const out=[];
+  for(let w=state.wave+1;w<=TOTAL_WAVES;w++){
+    (state.waveEvents[w]||[]).forEach(eid=>{
+      const ev=EVENTS.find(e=>e.id===eid); if(!ev) return;
+      // pick the most-affected god as the "관련 주"
+      let topId=null, topAbs=0;
+      ev.effGod.forEach(([ids,val])=> ids.forEach(id=>{ if(Math.abs(val)>topAbs){topAbs=Math.abs(val);topId=id;} }));
+      if(topId==null) return;
+      out.push({eid, wave:w, godId:topId});
+    });
   }
-  t.godId = godId; // share count is read live from state.godHoldings, not stored here
-  t._atkAcc = 0;
-  renderAll();
+  return out;
+}
+const hermesDiscount = ()=> godLevel(9)>0 ? 0.8 : 1;
+function buyInfo(card, margin){
+  const cost = Math.round((margin===1?1000:500)*hermesDiscount());
+  if(state.coin<cost) return false;
+  state.coin-=cost;
+  state.ownedInfo.push({godId:card.godId, wave:card.wave, margin, eid:card.eid});
+  return true;
 }
 
-/* ============================== RENDER ============================== */
-
-function pushLog(msg){
-  state.log.push({wave:state.wave, msg});
-  if(state.log.length>60) state.log.shift();
-  renderLog();
-}
-function renderLog(){
-  const el = document.getElementById('log');
-  el.innerHTML = state.log.slice(-40).map(l=>`<div class="log-item"><span class="lw">W${l.wave}</span> ${l.msg}</div>`).join('');
-}
-
-function fmt(n){ return Math.round(n).toLocaleString('ko-KR'); }
-
-function renderTopbar(){
-  document.getElementById('statCoin').textContent = fmt(state.coin);
-  const assets = state.coin + GODS.reduce((s,g)=>s+state.godHoldings[g.id].shares*state.godPrice[g.id],0);
-  document.getElementById('statAssets').textContent = fmt(assets);
-  document.getElementById('statWave').textContent = state.wave+' / '+WAVES.length;
-  const w = WAVES[state.wave-1];
-  document.getElementById('statTime').textContent = state.intermission ? '대기중' : Math.max(0,Math.ceil(w.time-state.waveElapsed))+'s';
-  document.getElementById('statMonsters').textContent = state.monsters.length+' / '+w.over;
-  document.getElementById('statKills').textContent = fmt(state.kills||0);
-  const nextEventEl = document.getElementById('statNextEvent');
-  if(state.intermission){
-    nextEventEl.textContent = '대기중';
-  } else if((state._waveEventFired||0) >= (state._waveEventCount||0)){
-    nextEventEl.textContent = '이번 웨이브 종료';
-  } else {
-    nextEventEl.textContent = Math.max(0, Math.ceil(nextEventAt - state.waveElapsed))+'s';
-  }
+/* ===================== NEWS (키워드 힌트) ===================== */
+// derive a headline + keywords from the trend of the next few waves' events
+function currentNews(){
+  const upcoming=[];
+  for(let w=state.wave;w<=Math.min(TOTAL_WAVES,state.wave+3);w++) (state.waveEvents[w]||[]).forEach(id=>upcoming.push(id));
+  const wsShift={};
+  upcoming.forEach(id=>{ const ev=EVENTS.find(e=>e.id===id); if(!ev) return;
+    ev.effWS.forEach(([ids,val])=> ids.forEach(i=> wsShift[i]=(wsShift[i]||0)+val)); });
+  const rising = Object.entries(wsShift).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,2);
+  const falling = Object.entries(wsShift).filter(([,v])=>v<0).sort((a,b)=>a[1]-b[1]).slice(0,2);
+  const nm=id=>WS_DEFS.find(w=>w.id==id).name;
+  const kws=[];
+  rising.forEach(([id])=>kws.push(nm(id)+" 상승 조짐"));
+  falling.forEach(([id])=>kws.push(nm(id)+" 하락 우려"));
+  const firstEv = upcoming.length? EVENTS.find(e=>e.id===upcoming[0]) : null;
+  return {
+    headline: firstEv? firstEv.desc : "인간계는 잠시 평온을 되찾았습니다.",
+    body:"아르고스 통신원들이 인간계 전역의 동향을 취재했습니다. 다가올 사건들의 조짐이 시장 곳곳에서 감지되고 있습니다. 현명한 투자자는 이 신호를 놓치지 않을 것입니다.",
+    keywords: kws.length? kws : ["큰 변화 없음"]
+  };
 }
 
-function renderWS(){
-  const el = document.getElementById('wsStrip');
-  el.innerHTML = WS_DEFS.map(d=>{
-    const v = state.ws[d.id];
-    const max = d.max>1000?200:d.max;
-    const pct = Math.min(100, (v/max)*100);
-    return `<div class="ws-item">
-      <span class="label">${d.name}</span>
-      <div class="ws-bar"><div style="width:${pct}%"></div></div>
-      <div class="valrow"><span class="num">${Math.round(v)}</span></div>
+/* ===================== SCREEN RENDER ===================== */
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('ko-KR');
+function assets(){ return state.coin + GODS.reduce((s,g)=> s + (state.holdings[g.id]?.shares||0)*state.price[g.id], 0); }
+function renderHUD(){
+  $('hWave').textContent = state.wave+' / '+TOTAL_WAVES;
+  $('hCoin').textContent = fmt(state.coin);
+  $('hAssets').textContent = fmt(assets());
+}
+function go(phase){ state.phase=phase; render(); }
+function render(){
+  renderHUD();
+  const s=$('screen');
+  s.className='screen';
+  if(state.phase==="start") s.innerHTML=viewStart();
+  else if(state.phase==="hub") s.innerHTML=viewHub();
+  else if(state.phase==="godsdaq") s.innerHTML=viewGodsdaq();
+  else if(state.phase==="oracle") s.innerHTML=viewOracle();
+  else if(state.phase==="news") s.innerHTML=viewNews();
+  else if(state.phase==="setup") s.innerHTML=viewSetup();
+  else if(state.phase==="combat"){ s.innerHTML=viewCombat(); startCombat(); }
+  else if(state.phase==="result") s.innerHTML=viewResult();
+  bindScreen();
+}
+
+/* ---- start / starting pick ---- */
+function viewStart(){
+  // proto starts with Zeus preselected among 3 (per wireframe)
+  return `<div class="screen-head"><h2>스타팅 선택</h2></div>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px;">3가지 신 중 하나를 선택해 시작합니다. 선택한 신은 1레벨로 시작하며, 나머지는 미보유 상태로 시작합니다. (프로토: 제우스 고정)</p>
+    <div class="pick-grid">
+      ${[1,1,1].map((_,i)=>{ const g=godById(1); return `
+        <div class="pick" data-pick="1">
+          <div class="ic">${g.icon}</div>
+          <div class="nm">${g.kr}</div>
+          <div class="ds">${g.skill}</div>
+        </div>`;}).join('')}
     </div>`;
-  }).join('');
 }
 
-function renderGodList(){
-  const el = document.getElementById('godList');
-  el.innerHTML = GODS.map(g=>{
-    const price = state.godPrice[g.id];
-    const prev = state.godPrevPrice[g.id] || price;
-    const pct = prev? ((price-prev)/prev*100) : 0; // change since the last reprice tick (market move)
-    const h = state.godHoldings[g.id];
-    const myPct = h.shares>0 && h.avgPrice ? ((price-h.avgPrice)/h.avgPrice*100) : null; // my position's return
-    // 인게임 사양.html §3-A-3: 현재 공격력 = BaseDamage × 보유 주식 수 × (현재가/BasePrice)
-    const atk = h.shares>0 ? g.dmg * h.shares * (price/g.basePrice) * state.cheat.dmg : 0;
-    const dps = atk * (g.atkSpd/10);
-    const isPlaced = Object.values(state.tiles).some(t=>t.owned && t.godId===g.id);
-    const effMaxQty = Math.round(g.maxQty * state.cheat.maxQty);
-    const atMax = h.shares>=effMaxQty;
-    const buyBlocked = state.coin<price || atMax;
-    return `<div class="god-row ${h.shares>0?'owned':''}" style="border-left:3px solid ${g.color}">
+/* ---- hub ---- */
+function viewHub(){
+  return `<div class="screen-head"><h2>활동 선택</h2><span class="back">진행중인 웨이브: ${String(state.wave).padStart(2,'0')}</span></div>
+    <div class="hub-grid">
+      <div class="hub-card" data-go="news"><div class="ico">📰</div><div class="name">아르고스</div><div class="desc">인간계 뉴스 — 다가올 사건의 키워드 힌트</div></div>
+      <div class="hub-card" data-go="godsdaq"><div class="ico">🏛️</div><div class="name">GODSDAQ</div><div class="desc">신 주식 매매 — 오를 신을 미리 사고, 오른 신을 팔기</div></div>
+      <div class="hub-card" data-go="oracle"><div class="ico">🔮</div><div class="name">오라클</div><div class="desc">정보 구매 — 미래 사건의 시점을 오차범위로 구매</div></div>
+    </div>
+    <button class="hub-start" data-go="setup">⚔️ 웨이브 ${String(state.wave).padStart(2,'0')} 전투 준비 →</button>`;
+}
+
+/* ---- godsdaq ---- */
+function viewGodsdaq(){
+  const sorted=[...GODS].sort(cmpSort);
+  return `<div class="screen-head"><button class="small" data-go="hub">‹ 뒤로</button><h2>GODSDAQ · 주식 구매</h2></div>
+    <div class="sort-row"><span class="lbl">정렬순서</span>
+      ${sortBtn('price','판매가')} ${sortBtn('change','상승률')} ${sortBtn('shares','보유수량')} ${sortBtn('pl','손익률')}
+    </div>
+    <div>${sorted.map(stockRow).join('')}</div>`;
+}
+function sortBtn(k,label){ return `<button class="small ${state.sortKey===k?'active':''}" data-sort="${k}">${label}</button>`; }
+function cmpSort(a,b){
+  const k=state.sortKey;
+  if(k==='price') return state.price[b.id]-state.price[a.id];
+  if(k==='change'){ return pctChange(b.id)-pctChange(a.id); }
+  if(k==='shares') return (state.holdings[b.id]?.shares||0)-(state.holdings[a.id]?.shares||0);
+  if(k==='pl') return plPct(b.id)-plPct(a.id);
+  return 0;
+}
+function pctChange(id){ const pv=state.prevPrice[id]||state.price[id]; return pv? (state.price[id]-pv)/pv*100:0; }
+function plPct(id){ const h=state.holdings[id]; return (h&&h.avgPrice)? (state.price[id]-h.avgPrice)/h.avgPrice*100 : 0; }
+function stockRow(g){
+  const h=state.holdings[g.id]||{shares:0,avgPrice:0};
+  const lv=godLevel(g.id), price=state.price[g.id], ch=pctChange(g.id), pl=plPct(g.id);
+  const atk=godAttack(g.id);
+  const canBuy=state.coin>=price;
+  const expPct = lv>0? 100 : 0;
+  return `<div class="stock" style="border-left-color:${g.color}">
+    <div class="ico" style="background:${g.color}22;color:${g.color}">${g.icon}</div>
+    <div>
+      <div class="nm">${g.kr} ${lv>0?`<span class="lv">LV ${lv}</span>`:''}</div>
+      <div class="meta">CoreWS ${WS_DEFS.find(w=>w.id===g.coreWS).name} · 공격력 ${lv>0?atk.toFixed(0):'—'}${h.avgPrice?` · 평단 ${fmt(h.avgPrice)} <span class="${pl>=0?'up':'down'}">(${pl>=0?'+':''}${pl.toFixed(1)}%)</span>`:''}</div>
+      ${lv>0?`<div class="expbar"><div style="width:${expPct}%"></div></div>`:''}
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="price"><div class="p num">${fmt(price)}</div><div class="d num ${ch>=0?'up':'down'}">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(1)}%</div></div>
+      <div class="acts">
+        <button class="small ${canBuy?'':'insufficient'}" ${canBuy?'':'disabled'} data-buy="${g.id}">매수</button>
+        <button class="small" ${h.shares>0?'':'disabled'} data-sell="${g.id}">매도</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---- oracle ---- */
+function viewOracle(){
+  const cards=sellableInfo();
+  return `<div class="screen-head"><button class="small" data-go="hub">‹ 뒤로</button><h2>오라클 · 정보 구매</h2></div>
+    <p style="color:var(--muted);font-size:12.5px;margin:0 0 14px;">미래 사건이 <b>어느 웨이브</b>에 일어날지 오차범위로 삽니다. 상급 정보(±1)는 정확하지만 비싸고, 하급 정보(±3)는 저렴하지만 부정확합니다.${godLevel(9)>0?' <span class="up">(헤르메스 효과: 20% 할인 적용중)</span>':''}</p>
+    ${state.ownedInfo.length? `<div class="info-tabs"><span style="font-size:12px;color:var(--gold);">보유중인 정보</span></div>
+      ${state.ownedInfo.map(ownedInfoRow).join('')}` : ''}
+    <div class="info-tabs" style="margin-top:14px;"><span style="font-size:12px;color:var(--gold);">판매 중인 정보</span></div>
+    ${cards.length? cards.slice(0,8).map(infoCard).join('') : '<p style="color:var(--muted);font-size:13px;">더 이상 예정된 사건 정보가 없습니다.</p>'}`;
+}
+function infoCard(c){
+  const g=godById(c.godId);
+  const priceHi=Math.round(1000*hermesDiscount()), priceLo=Math.round(500*hermesDiscount());
+  const range = `${Math.max(state.wave+1,c.wave-3)}~${Math.min(TOTAL_WAVES,c.wave+3)}`;
+  return `<div class="info-card">
+    <div class="ico stock-ico" style="width:34px;height:34px;border-radius:50%;background:${g.color}22;color:${g.color};display:flex;align-items:center;justify-content:center;font-size:16px;">${g.icon}</div>
+    <div class="when"><div>예상 시점 <b>${range} Wave</b></div><div style="color:var(--muted);font-size:11.5px;">관련 주: ${g.kr}</div></div>
+    <div class="buys">
+      <button class="small ${state.coin>=priceHi?'':'insufficient'}" ${state.coin>=priceHi?'':'disabled'} data-info="${c.eid}:${c.wave}:${c.godId}:1">상급 ±1 · ${priceHi}</button>
+      <button class="small ${state.coin>=priceLo?'':'insufficient'}" ${state.coin>=priceLo?'':'disabled'} data-info="${c.eid}:${c.wave}:${c.godId}:3">하급 ±3 · ${priceLo}</button>
+    </div>
+  </div>`;
+}
+function ownedInfoRow(o){
+  const g=godById(o.godId);
+  const lo=Math.max(state.wave, o.wave-o.margin), hi=Math.min(TOTAL_WAVES,o.wave+o.margin);
+  const ev=EVENTS.find(e=>e.id===o.eid);
+  return `<div class="owned-info"><b style="color:${g.color}">${g.kr}</b> 관련 사건이 <b class="num">${lo}~${hi} Wave</b>(오차±${o.margin}) 사이에 발생합니다.<br><span style="color:var(--muted)">${ev?ev.desc:''}</span></div>`;
+}
+
+/* ---- news ---- */
+function viewNews(){
+  const n=currentNews();
+  state.newsSeen=true;
+  return `<div class="screen-head"><button class="small" data-go="hub">‹ 뒤로</button><h2>아르고스 통신</h2></div>
+    <div class="news">
+      <div class="masthead"><span class="title">ARGUS</span><span class="date">웨이브 ${String(state.wave).padStart(2,'0')} · 인간계 소식</span></div>
+      <div class="headline">${n.headline}</div>
+      <div class="body">${n.body}</div>
+      <div class="kw">${n.keywords.map(k=>`<span>${k}</span>`).join('')}</div>
+    </div>`;
+}
+
+/* ---- setup (roster) ---- */
+function viewSetup(){
+  const w=state.wave, isBoss=(w%5===0);
+  state.bossName = isBoss? BOSSES[Math.floor(w/5)-1]||BOSSES[0] : "";
+  const owned = GODS.filter(g=>godLevel(g.id)>0);
+  return `<div class="screen-head"><button class="small" data-go="hub">‹ 허브로</button><h2>웨이브 ${String(w).padStart(2,'0')} 입장 전 세팅</h2></div>
+    <div class="setup">
+      <div class="wave-info">
+        <h3 style="font-family:var(--font-display);font-size:15px;margin-bottom:12px;color:var(--gold);">Wave 정보</h3>
+        ${isBoss? `<div class="r"><div class="ic">🗿</div><div class="t"><b>Boss : ${state.bossName}</b><small>10초에 한번 주변 범위 안의 신들을 2초간 돌로 만듭니다. 시간 내 처치하지 못하면 패배합니다.</small></div></div>`:''}
+        <div class="r"><div class="ic">🐀</div><div class="t"><b>Monster : 쥐</b><small>${MONSTERS.rat.desc}</small></div></div>
+        <div class="r"><div class="ic">🐦</div><div class="t"><b>Monster : 새</b><small>${MONSTERS.bird.desc}</small></div></div>
+      </div>
       <div>
-        <div class="god-name"><span class="god-icon" style="background:${g.color}22;color:${g.color}">${g.icon}</span>${g.kr}</div>
-        <div class="god-meta">보유 ${h.shares} / 발행 ${effMaxQty}주 · CoreWS ${WS_DEFS.find(w=>w.id===g.coreWS).name}</div>
-        ${myPct!==null ? `<div class="god-meta">평단가 ${fmt(h.avgPrice)} · <span class="${myPct>=0?'up':'down'}">${myPct>=0?'+':''}${myPct.toFixed(1)}% 수익</span></div>` : ''}
-        ${h.shares>0 ? `<div class="god-meta">공격력 ${atk.toFixed(1)} · 초당피해 ${dps.toFixed(1)} · ${isPlaced?'<span class="up">배치됨</span>':'<span class="down">미배치</span>'}</div>` : ''}
-      </div>
-      <div class="price-col">
-        <div class="price num">${fmt(price)}</div>
-        <div class="pct num ${pct>=0?'up':'down'}" title="직전 시세 변동">${pct>=0?'+':''}${pct.toFixed(1)}%</div>
-      </div>
-      <div class="trade-btns">
-        <button class="small ${buyBlocked?'insufficient':''}" title="${atMax?'발행 주식 소진':state.coin<price?'향화 부족':''}" ${buyBlocked?'disabled':''} data-action="buy" data-god="${g.id}">매수</button>
-        <button class="small" data-action="sell" data-god="${g.id}" ${h.shares<=0?'disabled':''}>매도</button>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">출전 슬롯 (최대 ${ROSTER_SLOTS})</div>
+        <div class="slots">
+          ${Array.from({length:ROSTER_SLOTS}).map((_,i)=>{ const id=state.roster[i];
+            if(id){ const g=godById(id); return `<div class="slot filled" style="border-color:${g.color};color:${g.color}" data-unslot="${id}" title="${g.kr}">${g.icon}<span class="x">×</span></div>`; }
+            return `<div class="slot">+</div>`;
+          }).join('')}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">보유 신 (클릭해 출전 등록)</div>
+        <div class="roster">
+          ${owned.length? owned.map(g=>{
+            const dep=state.roster.includes(g.id);
+            return `<div class="rg ${dep?'deployed':''}" style="border-left-color:${g.color}" data-slot="${g.id}">
+              <div class="ico" style="background:${g.color}22;color:${g.color}">${g.icon}</div>
+              <div style="flex:1;"><div class="nm">${g.kr}</div><div class="lv">LV ${godLevel(g.id)} · 공격력 ${godAttack(g.id).toFixed(0)}</div></div>
+              ${dep?'<span style="color:var(--gold);font-size:11px;">출전</span>':''}
+            </div>`;
+          }).join('') : '<p style="color:var(--muted);font-size:13px;grid-column:1/3;">보유한 신이 없습니다. GODSDAQ에서 신을 매수하세요.</p>'}
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <button class="primary" ${state.roster.length?'':'disabled'} data-go="combat">전투 시작 (${state.roster.length}신 출전)</button>
+          <button class="small" data-go="godsdaq">GODSDAQ에서 매수</button>
+        </div>
       </div>
     </div>`;
-  }).join('');
 }
-// event delegation, not per-button onclick — #godList's innerHTML gets torn
-// down and rebuilt on every render (price ticks, throttled or not), so any
-// listener bound to the buttons themselves is only ever one render-cycle
-// away from being ripped out mid-click. One listener on the stable parent
-// container can never go stale, no matter how often its children get replaced.
-document.getElementById('godList').addEventListener('click', (e)=>{
-  const btn = e.target.closest('button[data-action]');
-  if(!btn || btn.disabled) return;
-  const id = +btn.dataset.god;
-  if(btn.dataset.action==='buy'){ if(buyGod(id,1)) renderAll(); }
-  else if(btn.dataset.action==='sell'){ if(sellGod(id,1)) renderAll(); }
-});
 
-function renderTilePanel(){
-  const el = document.getElementById('tileInfo');
-  const pick = document.getElementById('godPick');
-  if(!state.selectedTile){ el.innerHTML=`<div class="empty-hint">타일을 클릭해 구매하거나 신을 배치하세요.</div>`; pick.innerHTML=''; return; }
-  const [x,y] = state.selectedTile;
-  // any tile is a valid shrine, including ones the path currently encircles —
-  // the design doc never restricts buildability by path enclosure, only price
-  const t = getTile(x,y);
-  if(!t.owned){
-    const price = tilePrice(x,y);
-    el.innerHTML = `<div class="row"><span>구매 가격</span><span class="num">${fmt(price)} 향화</span></div>
-      <button class="primary ${state.coin<price?'insufficient':''}" style="margin-top:8px;width:100%" ${state.coin<price?'disabled':''} data-action="buyTile" data-x="${x}" data-y="${y}">신전 구매</button>`;
-    pick.innerHTML='';
-  } else {
-    const sp = tileSellPrice(t);
-    const godName = t.godId? GODS.find(g=>g.id===t.godId).kr : '없음';
-    el.innerHTML = `<div class="row"><span>배치된 신</span><span>${godName}</span></div>
-      <div class="row"><span>판매가</span><span class="num">${fmt(sp)} 향화</span></div>
-      <button class="small" style="margin-top:6px;width:100%" data-action="sellTile" data-x="${x}" data-y="${y}">신전 판매</button>`;
-    pick.innerHTML = GODS.map(g=>{
-      const owned = state.godHoldings[g.id].shares;
-      const elsewhere = Object.entries(state.tiles).find(([k,ot])=>ot.owned&&ot.godId===g.id&&k!==tileKey(x,y));
-      const tag = elsewhere? ' ↺' : '';
-      const active = t.godId===g.id;
-      return `<button class="small" style="border-color:${g.color}${active?'':'55'};${active?`background:${g.color}33;`:''}" title="${elsewhere?'다른 신전에서 이동':''}" ${owned<=0?'disabled':''} data-action="place" data-x="${x}" data-y="${y}" data-god="${g.id}">${g.icon} ${g.kr}(${owned})${tag}</button>`;
-    }).join('');
+/* ---- result ---- */
+function viewResult(){
+  const r=state.lastResult;
+  const win=r.win;
+  const growth=assets()/START_COIN;
+  return `<div class="result">
+    <div class="big" style="color:${win?'var(--up)':'var(--down)'}">${win?'WIN':'LOSE'}</div>
+    <div class="sub">${win? (state.wave>=TOTAL_WAVES?'모든 웨이브를 방어했습니다!':'다음 웨이브로 진행합니다.') : `웨이브 ${state.wave}에서 방어에 실패했습니다.`}</div>
+    <div class="stats">
+      <span class="k">처치 수</span><span class="num">${r.kills}</span>
+      <span class="k">최종 자산</span><span class="num">${fmt(assets())}</span>
+      <span class="k">자산 증감</span><span class="num ${growth>=1?'up':'down'}">${growth>=1?'+':''}${((growth-1)*100).toFixed(0)}%</span>
+    </div>
+    <div>
+      ${win && state.wave<TOTAL_WAVES ? `<button class="primary" data-go="nextwave">다음 웨이브 진행 →</button>` :
+        `<button class="primary" data-restart="1">다시 시작</button>`}
+    </div>
+  </div>`;
+}
+
+/* ===================== COMBAT (자동 전투, 고정 전장) ===================== */
+let combatState=null, combatRAF=null;
+function viewCombat(){
+  const isBoss=(state.wave%5===0);
+  return `<div class="screen-head"><h2>전투 · 웨이브 ${String(state.wave).padStart(2,'0')}</h2>
+    <span class="back" id="cbWaveInfo"></span></div>
+    <div class="combat-wrap">
+      <canvas id="cbCanvas" width="620" height="380"></canvas>
+      <div class="combat-side">
+        <h3>전황</h3>
+        <div class="row"><span>남은 시간</span><b id="cbTime">—</b></div>
+        <div class="row"><span>필드 몬스터</span><b id="cbMon">—</b></div>
+        <div class="row"><span>처치 수</span><b id="cbKills">—</b></div>
+        ${isBoss?`<div class="row"><span>보스 HP</span><b id="cbBoss">—</b></div>`:''}
+        <h3 style="margin-top:12px;">출전 신</h3>
+        <div id="cbGods"></div>
+        <div class="log" id="cbLog"></div>
+      </div>
+    </div>`;
+}
+function startCombat(){
+  const w=state.wave, isBoss=(w%5===0);
+  applyWaveEvents(w); // this wave's events fire → prices move for post-combat trading
+  const baseHP = 90 + w*12;
+  const arena={x:20,y:20,w:480,h:340};
+  // deployed gods at fixed arena positions (auto-placed, no manual placement)
+  const gods = state.roster.map((id,i)=>{
+    const g=godById(id);
+    const cols=Math.ceil(Math.sqrt(state.roster.length));
+    const col=i%cols, row=Math.floor(i/cols);
+    return {id, g, x:arena.x+80+col*90, y:arena.y+90+row*80, cd:0, atk:godAttack(id)};
+  });
+  combatState={
+    w, isBoss, arena, gods, monsters:[], kills:0, time:isBoss?40:30, elapsed:0,
+    spawnT:0, spawned:0, spawnCap: isBoss?1: (30+w*4), baseHP, over:60,
+    boss:null, log:[], done:false, last:performance.now(),
+  };
+  if(isBoss){
+    combatState.boss={ hp:baseHP*8, maxHp:baseHP*8, x:arena.x+arena.w/2, y:arena.y+30, name:state.bossName };
   }
+  $('cbWaveInfo').textContent = isBoss? `등장 보스 : ${state.bossName}` : '일반 웨이브';
+  renderCombatGods();
+  combatRAF=requestAnimationFrame(combatLoop);
 }
-// same event-delegation reasoning as #godList above
-document.getElementById('tileInfo').addEventListener('click', handleTileAction);
-document.getElementById('godPick').addEventListener('click', handleTileAction);
-function handleTileAction(e){
-  const btn = e.target.closest('button[data-action]');
-  if(!btn || btn.disabled) return;
-  const x = +btn.dataset.x, y = +btn.dataset.y;
-  if(btn.dataset.action==='buyTile') buyTile(x,y);
-  else if(btn.dataset.action==='sellTile') sellTile(x,y);
-  else if(btn.dataset.action==='place') placeGod(x,y,+btn.dataset.god);
+function renderCombatGods(){
+  $('cbGods').innerHTML = combatState.gods.map(o=>`
+    <div class="row"><span>${o.g.icon} ${o.g.kr} LV${godLevel(o.id)}</span><b>${o.atk.toFixed(0)}</b></div>`).join('');
 }
-
-function renderOracle(){
-  // static unless triggered
+function cbLog(m){ combatState.log.push(m); if(combatState.log.length>30)combatState.log.shift();
+  $('cbLog').innerHTML=combatState.log.slice(-14).map(l=>`<div class="li">${l}</div>`).join(''); }
+function spawnMonster(){
+  const cs=combatState;
+  const type = cs.w>=6 && Math.random()<0.5? 'bird':'rat';
+  const m=MONSTERS[type];
+  const hp=Math.round(cs.baseHP*m.hp);
+  cs.monsters.push({type, hp, maxHp:hp, spd:m.spd, reward:Math.round(6*m.reward),
+    // serpentine path across arena
+    t:0, alive:true});
 }
-
-/* ---- canvas ---- */
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-
-function drawMap(){
-  const tilePx = cv.width/GRID;
+function monsterPos(mon){
+  const a=combatState.arena;
+  // path: enters top-left, sweeps left-right down the arena
+  const total=a.w-40, laps=3;
+  const p=mon.t % 1;
+  const rowH=(a.h-60)/laps, row=Math.floor((mon.t%laps));
+  const dir = row%2===0?1:-1;
+  const x = dir>0? a.x+20+p*total : a.x+20+(1-p)*total;
+  const y = a.y+30+row*rowH;
+  return [x,y];
+}
+function combatLoop(now){
+  const cs=combatState; if(!cs||cs.done){ return; }
+  const dt=Math.min(50, now-cs.last); cs.last=now;
+  const sp=1; // 1x
+  cs.elapsed += dt/1000*sp;
+  // spawn
+  if(!cs.isBoss){
+    cs.spawnT+=dt*sp;
+    const interval= Math.max(500, 1400 - cs.w*40);
+    if(cs.spawnT>=interval && cs.spawned<cs.spawnCap){ cs.spawnT=0; spawnMonster(); cs.spawned++; }
+  }
+  // move monsters
+  cs.monsters.forEach(mon=>{ if(!mon.alive)return; mon.t += (dt/1000)*mon.spd*0.35; });
+  // boss
+  // gods attack
+  cs.gods.forEach(o=>{
+    o.cd-=dt;
+    if(o.cd>0) return;
+    const g=o.g, rangePx=g.range*46+30;
+    // target: monsters in range, else boss
+    let target=null, tgtIsBoss=false, best=Infinity, bestHi=-1;
+    cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=monsterPos(mon);
+      const d=Math.hypot(mx-o.x,my-o.y); if(d<=rangePx){
+        if(g.atkType===1){ if(mon.hp<best){best=mon.hp;target=mon;} }
+        else if(g.atkType===2){ if(mon.maxHp>bestHi){bestHi=mon.maxHp;target=mon;} }
+        else { if(mon.t>bestHi){bestHi=mon.t;target=mon;} }
+      }});
+    if(!target && cs.boss){ const d=Math.hypot(cs.boss.x-o.x,cs.boss.y-o.y); if(d<=rangePx){ target=cs.boss; tgtIsBoss=true; } }
+    if(!target) return;
+    o.cd = 1000/(g.atkSpd/10);
+    o.flash={x:o.x,y:o.y,tx:tgtIsBoss?target.x:monsterPos(target)[0],ty:tgtIsBoss?target.y:monsterPos(target)[1],t:now};
+    target.hp -= o.atk;
+    if(target.hp<=0){
+      if(tgtIsBoss){ cs.boss=null; endCombat(true); return; }
+      target.alive=false; cs.kills++; state.coin+=target.reward;
+    }
+  });
+  cs.monsters=cs.monsters.filter(m=>m.alive);
+  // lose: too many monsters pile up on the field
+  if(cs.monsters.length>cs.over){ endCombat(false); return; }
+  // wave end: survive the timer.
+  if(cs.elapsed>=cs.time){
+    if(cs.isBoss){ endCombat(!cs.boss); return; }   // boss must be dead
+    endCombat(true); return;                          // normal: survived → win
+  }
+  drawCombat();
+  // hud
+  $('cbTime').textContent=Math.max(0,Math.ceil(cs.time-cs.elapsed))+'s';
+  $('cbMon').textContent=cs.monsters.length+' / '+cs.over;
+  $('cbKills').textContent=cs.kills;
+  if(cs.isBoss && $('cbBoss')) $('cbBoss').textContent= cs.boss? Math.max(0,Math.round(cs.boss.hp))+' / '+cs.boss.maxHp : '처치!';
+  combatRAF=requestAnimationFrame(combatLoop);
+}
+function drawCombat(){
+  const cs=combatState, cv=$('cbCanvas'); if(!cv)return; const ctx=cv.getContext('2d');
+  const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   ctx.clearRect(0,0,cv.width,cv.height);
-  const colTile = cssVar('--tile'), colOwned = cssVar('--tile-owned'), colPath = cssVar('--path'), colBorder=cssVar('--border');
-  for(let x=0;x<GRID;x++) for(let y=0;y<GRID;y++){
-    const isBlob = BLOB.has(cellKey(x,y));
-    const t = state.tiles[tileKey(x,y)];
-    ctx.fillStyle = (t&&t.owned) ? colOwned : (isBlob? colPath : colTile);
-    ctx.fillRect(x*tilePx+1,y*tilePx+1,tilePx-2,tilePx-2);
-    if(state.selectedTile && state.selectedTile[0]===x && state.selectedTile[1]===y){
-      ctx.strokeStyle = cssVar('--select'); ctx.lineWidth=3;
-      ctx.strokeRect(x*tilePx+2,y*tilePx+2,tilePx-4,tilePx-4);
-    }
+  const a=cs.arena;
+  ctx.fillStyle=cssv('--panel'); ctx.fillRect(a.x,a.y,a.w,a.h);
+  ctx.strokeStyle=cssv('--border'); ctx.strokeRect(a.x,a.y,a.w,a.h);
+  // gods
+  cs.gods.forEach(o=>{
+    if(o.flash && performance.now()-o.flash.t<120){ ctx.strokeStyle=o.g.color; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(o.flash.x,o.flash.y); ctx.lineTo(o.flash.tx,o.flash.ty); ctx.stroke(); }
+    ctx.beginPath(); ctx.strokeStyle=o.g.color+'55'; ctx.lineWidth=1;
+    ctx.arc(o.x,o.y,o.g.range*46+30,0,7); ctx.stroke();
+    ctx.fillStyle=o.g.color; ctx.beginPath(); ctx.arc(o.x,o.y,16,0,7); ctx.fill();
+    ctx.fillStyle='#1a1508'; ctx.font='16px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(o.g.icon,o.x,o.y);
+  });
+  // monsters
+  cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=monsterPos(mon);
+    ctx.fillStyle= mon.type==='bird'?'#7fb0d0':'#d9635a';
+    ctx.beginPath(); ctx.arc(mx,my,mon.type==='bird'?6:7,0,7); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillRect(mx-9,my-13,18,3);
+    ctx.fillStyle='#4fae7c'; ctx.fillRect(mx-9,my-13,18*Math.max(0,mon.hp/mon.maxHp),3);
+  });
+  // boss
+  if(cs.boss){ ctx.fillStyle=cssv('--gold'); ctx.beginPath(); ctx.arc(cs.boss.x,cs.boss.y,20,0,7); ctx.fill();
+    ctx.fillStyle='#1a1508'; ctx.font='20px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🗿',cs.boss.x,cs.boss.y);
+    ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillRect(cs.boss.x-26,cs.boss.y-30,52,5);
+    ctx.fillStyle='#d9635a'; ctx.fillRect(cs.boss.x-26,cs.boss.y-30,52*Math.max(0,cs.boss.hp/cs.boss.maxHp),5);
   }
-  // path line — traces the vertex loop threading the gaps between tiles
-  ctx.strokeStyle = cssVar('--gold-dim'); ctx.lineWidth=3; ctx.beginPath();
-  LOOP.forEach(([x,y],i)=>{
-    const px=x*tilePx, py=y*tilePx;
-    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
-  });
-  ctx.closePath(); ctx.stroke();
-  // start marker
-  const [sx,sy]=START_VERTEX;
-  ctx.fillStyle=cssVar('--gold');
-  ctx.beginPath(); ctx.arc(sx*tilePx,sy*tilePx,6,0,7); ctx.fill();
-
-  // placed gods
-  placedGods().forEach(pg=>{
-    const cx=(pg.x+0.5)*tilePx, cy=(pg.y+0.5)*tilePx;
-    const c = pg.def.color;
-    // range ring tinted per-god so overlapping coverage is easy to read at a glance
-    ctx.beginPath(); ctx.strokeStyle = c+'40'; ctx.lineWidth=1.5;
-    ctx.arc(cx,cy, pg.def.range*tilePx, 0, 7); ctx.stroke();
-    // colored badge + the god's own icon, so towers are distinguishable without reading labels
-    ctx.beginPath(); ctx.fillStyle = c; ctx.arc(cx,cy, tilePx*0.32, 0, 7); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.font = `${Math.round(tilePx*0.36)}px serif`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(pg.def.icon, cx, cy);
-  });
-
-  // attack flashes — brief beam so a hit is unmistakably visible, not just a
-  // slowly-shrinking HP bar the player has to stare at to notice
-  const now = performance.now();
-  state.hitFx = state.hitFx.filter(fx => now-fx.t < 180);
-  state.hitFx.forEach(fx=>{
-    const age = (now-fx.t)/180;
-    ctx.strokeStyle = `rgba(255,214,140,${1-age})`;
-    ctx.lineWidth = 2.5*(1-age)+0.5;
-    ctx.beginPath(); ctx.moveTo(fx.x1*tilePx,fx.y1*tilePx); ctx.lineTo(fx.x2*tilePx,fx.y2*tilePx); ctx.stroke();
-  });
-
-  // monsters — mx,my are already vertex-space (grid-line) coords, no +0.5 offset
-  state.monsters.forEach(m=>{
-    const [mx,my]=monsterWorldXY(m);
-    ctx.fillStyle = m.boss? '#c9a15a':'#d9635a';
-    ctx.beginPath(); ctx.arc(mx*tilePx,my*tilePx, m.boss?9:5, 0, 7); ctx.fill();
-    // hp bar
-    const w = m.boss?26:14;
-    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(mx*tilePx-w/2,my*tilePx-(m.boss?18:12),w,3);
-    ctx.fillStyle='#4fae7c'; ctx.fillRect(mx*tilePx-w/2,my*tilePx-(m.boss?18:12),w*Math.max(0,m.hp/m.maxHp),3);
-  });
+}
+function endCombat(win){
+  if(!combatState||combatState.done) return;
+  combatState.done=true;
+  if(combatRAF) cancelAnimationFrame(combatRAF);
+  state.lastResult={win, kills:combatState.kills};
+  go("result");
 }
 
-cv.addEventListener('click', (e)=>{
-  const rect = cv.getBoundingClientRect();
-  const scaleX = cv.width/rect.width, scaleY = cv.height/rect.height;
-  const px = (e.clientX-rect.left)*scaleX, py=(e.clientY-rect.top)*scaleY;
-  const tilePx = cv.width/GRID;
-  const x = Math.floor(px/tilePx), y=Math.floor(py/tilePx);
-  if(x<0||y<0||x>=GRID||y>=GRID) return;
-  selectTile(x,y);
-  drawMap();
-});
-
-function renderAll(){
-  renderTopbar(); renderWS(); renderGodList(); renderTilePanel(); drawMap();
-}
-
-/* ============================== ORACLE UI ============================== */
-// §4-H: the first oracle read each wave is free — no reason to gate it
-// behind a button the player has to remember to press. Just show it.
-function revealFreeOracle(){
-  const ev = getOracleTarget();
-  const card = document.getElementById('oracleCard');
-  if(!ev){ card.className='oracle-card'; card.innerHTML=`<span class="oracle-meta">신탁</span>더 이상 예정된 사건이 없습니다.`; return; }
-  card.className='oracle-card revealed';
-  card.innerHTML = `<span class="oracle-meta">일반 등급 · 부정확한 시점</span>${obscure(ev.desc,0.35)}`;
-}
-document.getElementById('btnOraclePaid').addEventListener('click',()=>{
-  if(state.coin<60) return;
-  state.coin-=60;
-  const ev = getOracleTarget();
-  const card = document.getElementById('oracleCard');
-  if(!ev){ card.innerHTML=`<span class="oracle-meta">신탁</span>더 이상 예정된 사건이 없습니다.`; renderAll(); return; }
-  card.className='oracle-card revealed';
-  card.innerHTML = `<span class="oracle-meta">유니크 등급 · 정확한 정보</span>${ev.desc}`;
-  renderAll();
-});
-
-/* ============================== CONTROLS ============================== */
-document.getElementById('btnPause').addEventListener('click',(e)=>{
-  if(state.gameOver) return;
-  state.running=!state.running;
-  e.target.textContent = state.running? '일시정지':'재생';
-});
-document.getElementById('btnRestart').addEventListener('click',()=>location.reload());
-
-/* ============================== CHEAT PANEL ============================== */
-// state.cheat still stores plain multipliers internally (every formula
-// downstream reads it that way), but showing "x1.0" tells a designer nothing
-// concrete. Each field instead shows/edits the real resulting number for a
-// clear reference case, converting to/from the multiplier under the hood.
-const CHEAT_DEFAULTS = { reward:1, bossHp:1, speed:1, maxQty:1, dmg:1 };
-const cheatFields = [
-  // [inputId, cheat key, baseline value at multiplier=1, decimals to show]
-  ['cheatReward','reward', WAVES[0].baseRwd * (MONSTERS[1].rwdRate/100), 0],
-  ['cheatBossHp','bossHp', Math.round(WAVES[4].baseHP * (MONSTERS[100001].hpRate/100)), 0],
-  ['cheatSpeed','speed', 1000/EDGE_MS_BASE, 2], // tiles/sec at a monster's base SpeedRate(100)
-  ['cheatMaxQty','maxQty', GODS[0].maxQty, 0], // Zeus, as the reference god
-  ['cheatDmg','dmg', GODS[0].dmg, 0], // Zeus, 1 share, price==basePrice
-];
-function cheatFieldValue(baseline, key, decimals){ return +(baseline*state.cheat[key]).toFixed(decimals); }
-cheatFields.forEach(([inputId,key,baseline,decimals])=>{
-  const el = document.getElementById(inputId);
-  el.step = decimals>0? (1/Math.pow(10,decimals)) : Math.max(1, Math.round(baseline/20));
-  el.value = cheatFieldValue(baseline,key,decimals);
-  el.addEventListener('input', ()=>{
-    const v = +el.value;
-    if(!isFinite(v) || v<=0) return;
-    state.cheat[key] = v/baseline;
-    renderGodList(); // reflect the new cap/atk numbers immediately, don't wait for the throttle
+/* ===================== EVENT BINDING ===================== */
+function bindScreen(){
+  const s=$('screen');
+  s.querySelectorAll('[data-go]').forEach(el=> el.onclick=()=>{
+    const t=el.dataset.go;
+    if(t==="combat"){ go("combat"); }
+    else if(t==="nextwave"){ nextWave(); }
+    else go(t);
   });
-});
-const cheatCoinEl = document.getElementById('cheatCoin');
-cheatCoinEl.value = state.coin;
-cheatCoinEl.addEventListener('change', ()=>{
-  const v = Math.max(0, Math.round(+cheatCoinEl.value||0));
-  state.coin = v;
-  renderAll();
-});
-function syncCheatCoinField(){
-  // don't clobber the field while the player is actively typing in it
-  if(document.activeElement===cheatCoinEl) return;
-  cheatCoinEl.value = state.coin;
-}
-document.getElementById('cheatReset').addEventListener('click', ()=>{
-  Object.assign(state.cheat, CHEAT_DEFAULTS);
-  cheatFields.forEach(([inputId,key,baseline,decimals])=>{
-    document.getElementById(inputId).value = cheatFieldValue(baseline,key,decimals);
+  s.querySelectorAll('[data-pick]').forEach(el=> el.onclick=()=>{ startRun(+el.dataset.pick); });
+  s.querySelectorAll('[data-sort]').forEach(el=> el.onclick=()=>{ state.sortKey=el.dataset.sort; render(); });
+  s.querySelectorAll('[data-buy]').forEach(el=> el.onclick=()=>{ if(buy(+el.dataset.buy,1)) render(); });
+  s.querySelectorAll('[data-sell]').forEach(el=> el.onclick=()=>{ if(sell(+el.dataset.sell,1)) render(); });
+  s.querySelectorAll('[data-info]').forEach(el=> el.onclick=()=>{
+    const [eid,wave,godId,margin]=el.dataset.info.split(':').map(Number);
+    if(buyInfo({eid,wave,godId},margin)) render();
   });
-  renderGodList();
-});
-document.getElementById('btnStartWave').addEventListener('click',()=>{
-  state.intermission = false;
-  document.getElementById('waveGate').style.display='none';
-  startWave();
-});
-['btnSpeed1','btnSpeed2','btnSpeed4'].forEach((id,i)=>{
-  document.getElementById(id).addEventListener('click',(e)=>{
-    state.speed = [1,2,4][i];
-    document.querySelectorAll('#btnSpeed1,#btnSpeed2,#btnSpeed4').forEach(b=>b.classList.remove('active'));
-    e.target.classList.add('active');
+  s.querySelectorAll('[data-slot]').forEach(el=> el.onclick=()=>{
+    const id=+el.dataset.slot;
+    if(state.roster.includes(id)) state.roster=state.roster.filter(r=>r!==id);
+    else if(state.roster.length<ROSTER_SLOTS) state.roster.push(id);
+    render();
   });
-});
-document.getElementById('btnSpeed1').classList.add('active');
-
-/* ============================== INIT + LOOP ============================== */
-
-function init(){
-  // 모드.html prototype row: StartWSGroup01=1..6 randomized 40-60; WS7
-  // (population) is NOT in that group — it starts at DefaultWs07=100, the
-  // baseline the pricing formula's M multiplier is measured against. Seeding
-  // it to 50 like the rest (an earlier bug here) cut every god's starting
-  // price — and therefore attack power — roughly in half for no in-spec reason.
-  [1,2,3,4,5,6].forEach(id=>{ state.ws[id] = 40+Math.round(Math.random()*20); });
-  state.ws[7] = state.wsBaselinePop;
-  seedStartingTiles();
-  initGodPrices();
-  pushLog('플레이 시작 — 시작 신전 4칸 확보, 향화 2000 보유.');
-  // wave 1 used to auto-fire its first event before the player had even seen
-  // the board, so the "0%" baseline price was already stale by the time
-  // anyone looked. Gate wave 1 behind the same start button as every other
-  // wave — startWave() (spawning/combat) only runs once it's actually
-  // clicked, but the wave's events are already scheduled and previewable now.
-  state.intermission = true;
-  planUpcomingWave();
-  document.getElementById('waveGate').style.display='flex';
-  document.getElementById('waveGateLabel').textContent = '웨이브 1 시작 전';
-  renderAll();
+  s.querySelectorAll('[data-unslot]').forEach(el=> el.onclick=()=>{
+    state.roster=state.roster.filter(r=>r!==+el.dataset.unslot); render();
+  });
+  s.querySelectorAll('[data-restart]').forEach(el=> el.onclick=()=> location.reload());
 }
-init();
+$('btnRestart').onclick=()=>location.reload();
 
-let last = performance.now();
-let lastGodListRender = 0;
-function loop(now){
-  const rawDt = now-last; last=now;
-  if(state.running && !state.gameOver){
-    // a single bad data row or edge case must not silently kill the whole
-    // rAF loop forever (that's exactly what happened with the event #1
-    // mis-mapped column bug — combat, spawning, everything just stopped
-    // with no on-screen sign anything was wrong). Fail loud instead.
-    try{
-      if(!state.intermission){
-        const dt = Math.min(80,rawDt)*state.speed;
-        state.waveElapsed += dt/1000;
-        tickEvents(dt);
-        waveSpawnTick(dt);
-        moveMonsters(dt);
-        combatTick(dt);
-        endWaveCheck();
-      }
-      renderTopbar();
-      drawMap();
-      // throttled by wall-clock time, not by a per-frame modulo — the old
-      // check re-ran this on EVERY frame during alternating half-second
-      // windows, tearing down and rebuilding the buy/sell buttons dozens of
-      // times a second and yanking them out from under real clicks
-      if(now-lastGodListRender>500){ renderGodList(); syncCheatCoinField(); lastGodListRender=now; }
-    }catch(err){
-      state.running=false;
-      pushLog(`⚠️ 시뮬레이션 오류로 일시정지됨: ${err.message}`);
-      document.getElementById('btnPause').textContent='재생';
-      console.error(err);
-    }
-  }
-  requestAnimationFrame(loop);
+/* ===================== FLOW CONTROL ===================== */
+function startRun(godId){
+  state.ws={1:40+Math.round(Math.random()*20),2:40+Math.round(Math.random()*20),3:40+Math.round(Math.random()*20),
+            4:40+Math.round(Math.random()*20),5:40+Math.round(Math.random()*20),6:40+Math.round(Math.random()*20),7:BASE_POP};
+  initPrices();
+  prerollAllWaves();
+  buy(godId,1); // starting god at LV1
+  go("hub");
 }
-requestAnimationFrame(loop);
+function nextWave(){
+  if(state.wave>=TOTAL_WAVES){ return; }
+  state.wave++;
+  go("hub");
+}
+
+/* ===================== INIT ===================== */
+initPrices();
+render();
 </script>
 </body>
 </html>
