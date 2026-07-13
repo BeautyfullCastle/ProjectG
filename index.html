@@ -595,139 +595,161 @@ function viewCombat(){
       </div>
     </div>`;
 }
+/* central arena: a grid of god cells. monsters circle the PERIMETER of this
+   rect (빙글빙글). gods sit in cells and are drag-swappable. */
+const GRID_COLS=3, GRID_ROWS=3, RANGE_SCALE=34;
+function cellCenter(cs,idx){
+  const col=idx%GRID_COLS, row=Math.floor(idx/GRID_COLS);
+  const cw=cs.rect.w/GRID_COLS, ch=cs.rect.h/GRID_ROWS;
+  return [cs.rect.x+(col+0.5)*cw, cs.rect.y+(row+0.5)*ch];
+}
+function cellAt(cs,px,py){
+  const {x,y,w,h}=cs.rect;
+  if(px<x||py<y||px>=x+w||py>=y+h) return -1;
+  const col=Math.floor((px-x)/(w/GRID_COLS)), row=Math.floor((py-y)/(h/GRID_ROWS));
+  return row*GRID_COLS+col;
+}
+function perimPoint(cs,d){
+  const {x,y,w,h}=cs.rect, per=2*(w+h); d=((d%per)+per)%per;
+  if(d<w) return [x+d,y];
+  if(d<w+h) return [x+w,y+(d-w)];
+  if(d<2*w+h) return [x+w-(d-w-h),y+h];
+  return [x,y+h-(d-2*w-h)];
+}
 function startCombat(){
   const w=state.wave, isBoss=(w%5===0);
-  applyWaveEvents(w); // this wave's events fire → prices move for post-combat trading
-  const baseHP = 90 + w*12;
-  const arena={x:20,y:20,w:480,h:340};
-  // deployed gods at fixed arena positions (auto-placed, no manual placement)
-  const gods = state.roster.map((id,i)=>{
-    const g=godById(id);
-    const cols=Math.ceil(Math.sqrt(state.roster.length));
-    const col=i%cols, row=Math.floor(i/cols);
-    return {id, g, x:arena.x+80+col*90, y:arena.y+90+row*80, cd:0, atk:godAttack(id)};
-  });
+  applyWaveEvents(w);
+  const baseHP=90+w*12;
+  const rect={x:70,y:44,w:400,h:290};
+  // god cells: place roster into the first grid cells; player can drag to rearrange
+  const cells=Array(GRID_COLS*GRID_ROWS).fill(null);
+  const cellOrder=[4,1,3,5,7,0,2,6,8]; // center-out fill so single gods start reachable
+  state.roster.forEach((id,i)=>{ cells[cellOrder[i]]=id; });
   combatState={
-    w, isBoss, arena, gods, monsters:[], kills:0, time:isBoss?40:30, elapsed:0,
-    spawnT:0, spawned:0, spawnCap: isBoss?1: (30+w*4), baseHP, over:60,
-    boss:null, log:[], done:false, last:performance.now(),
+    w, isBoss, rect, cells, monsters:[], kills:0, time:isBoss?40:30, elapsed:0,
+    spawnT:0, spawned:0, spawnCap:isBoss?1:(30+w*4), baseHP, over:55,
+    perim:2*(rect.w+rect.h), boss:null, done:false, last:performance.now(),
+    drag:null,
   };
-  if(isBoss){
-    combatState.boss={ hp:baseHP*8, maxHp:baseHP*8, x:arena.x+arena.w/2, y:arena.y+30, name:state.bossName };
-  }
-  $('cbWaveInfo').textContent = isBoss? `등장 보스 : ${state.bossName}` : '일반 웨이브';
+  if(isBoss) combatState.boss={ hp:baseHP*8, maxHp:baseHP*8, d:0, name:state.bossName };
+  $('cbWaveInfo').textContent=isBoss?`등장 보스 : ${state.bossName}`:'일반 웨이브';
   renderCombatGods();
+  bindCombatDrag();
   combatRAF=requestAnimationFrame(combatLoop);
 }
 function renderCombatGods(){
-  $('cbGods').innerHTML = combatState.gods.map(o=>`
-    <div class="row"><span>${o.g.icon} ${o.g.kr} LV${godLevel(o.id)}</span><b>${o.atk.toFixed(0)}</b></div>`).join('');
+  const cs=combatState;
+  const ids=cs.cells.filter(Boolean);
+  $('cbGods').innerHTML = ids.map(id=>{ const g=godById(id);
+    return `<div class="row"><span>${g.icon} ${g.kr} LV${godLevel(id)}</span><b>${godAttack(id).toFixed(0)}</b></div>`;
+  }).join('') + `<div class="row" style="margin-top:6px;color:var(--muted2);font-size:11px;">칸을 드래그해 이동/스왑</div>`;
 }
-function cbLog(m){ combatState.log.push(m); if(combatState.log.length>30)combatState.log.shift();
-  $('cbLog').innerHTML=combatState.log.slice(-14).map(l=>`<div class="li">${l}</div>`).join(''); }
 function spawnMonster(){
   const cs=combatState;
-  const type = cs.w>=6 && Math.random()<0.5? 'bird':'rat';
+  const type=cs.w>=6 && Math.random()<0.5?'bird':'rat';
   const m=MONSTERS[type];
-  const hp=Math.round(cs.baseHP*m.hp);
-  cs.monsters.push({type, hp, maxHp:hp, spd:m.spd, reward:Math.round(6*m.reward),
-    // serpentine path across arena
-    t:0, alive:true});
+  cs.monsters.push({type, hp:Math.round(cs.baseHP*m.hp), maxHp:Math.round(cs.baseHP*m.hp),
+    spd:m.spd, reward:Math.round(6*m.reward), d:0, alive:true});
 }
-function monsterPos(mon){
-  const a=combatState.arena;
-  // path: enters top-left, sweeps left-right down the arena
-  const total=a.w-40, laps=3;
-  const p=mon.t % 1;
-  const rowH=(a.h-60)/laps, row=Math.floor((mon.t%laps));
-  const dir = row%2===0?1:-1;
-  const x = dir>0? a.x+20+p*total : a.x+20+(1-p)*total;
-  const y = a.y+30+row*rowH;
-  return [x,y];
+function bindCombatDrag(){
+  const cv=$('cbCanvas'); if(!cv) return;
+  const toCanvas=e=>{ const r=cv.getBoundingClientRect();
+    return [ (e.clientX-r.left)*(cv.width/r.width), (e.clientY-r.top)*(cv.height/r.height) ]; };
+  cv.onpointerdown=e=>{ const cs=combatState; if(!cs)return;
+    const [px,py]=toCanvas(e); const c=cellAt(cs,px,py);
+    if(c>=0 && cs.cells[c]){ cs.drag={from:c, id:cs.cells[c], x:px, y:py}; cv.setPointerCapture(e.pointerId); }
+  };
+  cv.onpointermove=e=>{ const cs=combatState; if(!cs||!cs.drag)return; const [px,py]=toCanvas(e); cs.drag.x=px; cs.drag.y=py; };
+  cv.onpointerup=e=>{ const cs=combatState; if(!cs||!cs.drag)return;
+    const [px,py]=toCanvas(e); const to=cellAt(cs,px,py);
+    if(to>=0 && to!==cs.drag.from){ const tmp=cs.cells[to]; cs.cells[to]=cs.drag.id; cs.cells[cs.drag.from]=tmp; renderCombatGods(); }
+    cs.drag=null;
+  };
 }
 function combatLoop(now){
-  const cs=combatState; if(!cs||cs.done){ return; }
+  const cs=combatState; if(!cs||cs.done) return;
   const dt=Math.min(50, now-cs.last); cs.last=now;
-  const sp=1; // 1x
-  cs.elapsed += dt/1000*sp;
-  // spawn
-  if(!cs.isBoss){
-    cs.spawnT+=dt*sp;
-    const interval= Math.max(500, 1400 - cs.w*40);
-    if(cs.spawnT>=interval && cs.spawned<cs.spawnCap){ cs.spawnT=0; spawnMonster(); cs.spawned++; }
-  }
-  // move monsters
-  cs.monsters.forEach(mon=>{ if(!mon.alive)return; mon.t += (dt/1000)*mon.spd*0.35; });
-  // boss
+  cs.elapsed+=dt/1000;
+  if(!cs.isBoss){ cs.spawnT+=dt; const interval=Math.max(500,1400-cs.w*40);
+    if(cs.spawnT>=interval && cs.spawned<cs.spawnCap){ cs.spawnT=0; spawnMonster(); cs.spawned++; } }
+  // monsters circle the perimeter (빙글빙글)
+  cs.monsters.forEach(mon=>{ if(mon.alive) mon.d += (dt/1000)*mon.spd*90; });
+  if(cs.boss) cs.boss.d += (dt/1000)*40;
   // gods attack
-  cs.gods.forEach(o=>{
-    o.cd-=dt;
-    if(o.cd>0) return;
-    const g=o.g, rangePx=g.range*46+30;
-    // target: monsters in range, else boss
-    let target=null, tgtIsBoss=false, best=Infinity, bestHi=-1;
-    cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=monsterPos(mon);
-      const d=Math.hypot(mx-o.x,my-o.y); if(d<=rangePx){
+  for(let idx=0; idx<cs.cells.length; idx++){
+    const id=cs.cells[idx]; if(!id) continue;
+    const g=godById(id); const o=(cs._cd=cs._cd||{});
+    o[idx]=(o[idx]||0)-dt; if(o[idx]>0) continue;
+    const [cx,cy]=cellCenter(cs,idx), rangePx=g.range*RANGE_SCALE+18;
+    let target=null,tgtBoss=false,best=Infinity,bestHi=-1;
+    cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=perimPoint(cs,mon.d);
+      if(Math.hypot(mx-cx,my-cy)<=rangePx){
         if(g.atkType===1){ if(mon.hp<best){best=mon.hp;target=mon;} }
         else if(g.atkType===2){ if(mon.maxHp>bestHi){bestHi=mon.maxHp;target=mon;} }
-        else { if(mon.t>bestHi){bestHi=mon.t;target=mon;} }
+        else { if(mon.d>bestHi){bestHi=mon.d;target=mon;} }
       }});
-    if(!target && cs.boss){ const d=Math.hypot(cs.boss.x-o.x,cs.boss.y-o.y); if(d<=rangePx){ target=cs.boss; tgtIsBoss=true; } }
-    if(!target) return;
-    o.cd = 1000/(g.atkSpd/10);
-    o.flash={x:o.x,y:o.y,tx:tgtIsBoss?target.x:monsterPos(target)[0],ty:tgtIsBoss?target.y:monsterPos(target)[1],t:now};
-    target.hp -= o.atk;
+    if(!target && cs.boss){ const [bx,by]=perimPoint(cs,cs.boss.d); if(Math.hypot(bx-cx,by-cy)<=rangePx){ target=cs.boss; tgtBoss=true; } }
+    if(!target) continue;
+    o[idx]=1000/(g.atkSpd/10);
+    const [tx,ty]= tgtBoss? perimPoint(cs,cs.boss.d) : perimPoint(cs,target.d);
+    cs._fx=cs._fx||[]; cs._fx.push({x:cx,y:cy,tx,ty,t:now,c:g.color});
+    target.hp -= godAttack(id);
     if(target.hp<=0){
-      if(tgtIsBoss){ cs.boss=null; endCombat(true); return; }
+      if(tgtBoss){ cs.boss=null; endCombat(true); return; }
       target.alive=false; cs.kills++; state.coin+=target.reward;
     }
-  });
-  cs.monsters=cs.monsters.filter(m=>m.alive);
-  // lose: too many monsters pile up on the field
-  if(cs.monsters.length>cs.over){ endCombat(false); return; }
-  // wave end: survive the timer.
-  if(cs.elapsed>=cs.time){
-    if(cs.isBoss){ endCombat(!cs.boss); return; }   // boss must be dead
-    endCombat(true); return;                          // normal: survived → win
   }
+  cs.monsters=cs.monsters.filter(m=>m.alive);
+  if(cs.monsters.length>cs.over){ endCombat(false); return; }
+  if(cs.elapsed>=cs.time){ endCombat(cs.isBoss? !cs.boss : true); return; }
   drawCombat();
-  // hud
   $('cbTime').textContent=Math.max(0,Math.ceil(cs.time-cs.elapsed))+'s';
   $('cbMon').textContent=cs.monsters.length+' / '+cs.over;
   $('cbKills').textContent=cs.kills;
-  if(cs.isBoss && $('cbBoss')) $('cbBoss').textContent= cs.boss? Math.max(0,Math.round(cs.boss.hp))+' / '+cs.boss.maxHp : '처치!';
+  if(cs.isBoss && $('cbBoss')) $('cbBoss').textContent=cs.boss?Math.max(0,Math.round(cs.boss.hp))+' / '+cs.boss.maxHp:'처치!';
   combatRAF=requestAnimationFrame(combatLoop);
 }
 function drawCombat(){
   const cs=combatState, cv=$('cbCanvas'); if(!cv)return; const ctx=cv.getContext('2d');
   const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   ctx.clearRect(0,0,cv.width,cv.height);
-  const a=cs.arena;
-  ctx.fillStyle=cssv('--panel'); ctx.fillRect(a.x,a.y,a.w,a.h);
-  ctx.strokeStyle=cssv('--border'); ctx.strokeRect(a.x,a.y,a.w,a.h);
-  // gods
-  cs.gods.forEach(o=>{
-    if(o.flash && performance.now()-o.flash.t<120){ ctx.strokeStyle=o.g.color; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(o.flash.x,o.flash.y); ctx.lineTo(o.flash.tx,o.flash.ty); ctx.stroke(); }
-    ctx.beginPath(); ctx.strokeStyle=o.g.color+'55'; ctx.lineWidth=1;
-    ctx.arc(o.x,o.y,o.g.range*46+30,0,7); ctx.stroke();
-    ctx.fillStyle=o.g.color; ctx.beginPath(); ctx.arc(o.x,o.y,16,0,7); ctx.fill();
-    ctx.fillStyle='#1a1508'; ctx.font='16px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(o.g.icon,o.x,o.y);
-  });
-  // monsters
-  cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=monsterPos(mon);
-    ctx.fillStyle= mon.type==='bird'?'#7fb0d0':'#d9635a';
+  const r=cs.rect;
+  // arena fill + grid
+  ctx.fillStyle=cssv('--panel'); ctx.fillRect(r.x,r.y,r.w,r.h);
+  ctx.strokeStyle=cssv('--gold-dim'); ctx.lineWidth=3; ctx.strokeRect(r.x,r.y,r.w,r.h); // the perimeter monsters circle
+  ctx.strokeStyle=cssv('--border'); ctx.lineWidth=1;
+  for(let c=1;c<GRID_COLS;c++){ ctx.beginPath(); ctx.moveTo(r.x+c*r.w/GRID_COLS,r.y); ctx.lineTo(r.x+c*r.w/GRID_COLS,r.y+r.h); ctx.stroke(); }
+  for(let rr=1;rr<GRID_ROWS;rr++){ ctx.beginPath(); ctx.moveTo(r.x,r.y+rr*r.h/GRID_ROWS); ctx.lineTo(r.x+r.w,r.y+rr*r.h/GRID_ROWS); ctx.stroke(); }
+  // attack flashes
+  const now=performance.now(); cs._fx=(cs._fx||[]).filter(f=>now-f.t<130);
+  cs._fx.forEach(f=>{ ctx.strokeStyle=f.c; ctx.lineWidth=2; ctx.globalAlpha=1-(now-f.t)/130;
+    ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(f.tx,f.ty); ctx.stroke(); ctx.globalAlpha=1; });
+  // gods in cells
+  for(let idx=0; idx<cs.cells.length; idx++){
+    const id=cs.cells[idx]; if(!id) continue;
+    if(cs.drag && cs.drag.from===idx) continue; // being dragged, draw at cursor later
+    const g=godById(id), [cx,cy]=cellCenter(cs,idx);
+    ctx.beginPath(); ctx.strokeStyle=g.color+'44'; ctx.lineWidth=1; ctx.arc(cx,cy,g.range*RANGE_SCALE+18,0,7); ctx.stroke();
+    ctx.fillStyle=g.color; ctx.beginPath(); ctx.arc(cx,cy,17,0,7); ctx.fill();
+    ctx.fillStyle='#1a1508'; ctx.font='17px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(g.icon,cx,cy);
+  }
+  // monsters on perimeter
+  cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=perimPoint(cs,mon.d);
+    ctx.fillStyle=mon.type==='bird'?'#7fb0d0':'#d9635a';
     ctx.beginPath(); ctx.arc(mx,my,mon.type==='bird'?6:7,0,7); ctx.fill();
     ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillRect(mx-9,my-13,18,3);
     ctx.fillStyle='#4fae7c'; ctx.fillRect(mx-9,my-13,18*Math.max(0,mon.hp/mon.maxHp),3);
   });
-  // boss
-  if(cs.boss){ ctx.fillStyle=cssv('--gold'); ctx.beginPath(); ctx.arc(cs.boss.x,cs.boss.y,20,0,7); ctx.fill();
-    ctx.fillStyle='#1a1508'; ctx.font='20px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🗿',cs.boss.x,cs.boss.y);
-    ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillRect(cs.boss.x-26,cs.boss.y-30,52,5);
-    ctx.fillStyle='#d9635a'; ctx.fillRect(cs.boss.x-26,cs.boss.y-30,52*Math.max(0,cs.boss.hp/cs.boss.maxHp),5);
+  // boss on perimeter
+  if(cs.boss){ const [bx,by]=perimPoint(cs,cs.boss.d);
+    ctx.font='22px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🗿',bx,by);
+    ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillRect(bx-26,by-22,52,5);
+    ctx.fillStyle='#d9635a'; ctx.fillRect(bx-26,by-22,52*Math.max(0,cs.boss.hp/cs.boss.maxHp),5);
   }
+  // dragged god ghost at cursor
+  if(cs.drag){ const g=godById(cs.drag.id);
+    ctx.globalAlpha=.85; ctx.fillStyle=g.color; ctx.beginPath(); ctx.arc(cs.drag.x,cs.drag.y,17,0,7); ctx.fill();
+    ctx.fillStyle='#1a1508'; ctx.font='17px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(g.icon,cs.drag.x,cs.drag.y); ctx.globalAlpha=1; }
 }
 function endCombat(win){
   if(!combatState||combatState.done) return;
