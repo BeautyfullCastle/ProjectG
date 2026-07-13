@@ -582,7 +582,7 @@ function viewCombat(){
   return `<div class="screen-head"><h2>전투 · 웨이브 ${String(state.wave).padStart(2,'0')}</h2>
     <span class="back" id="cbWaveInfo"></span></div>
     <div class="combat-wrap">
-      <canvas id="cbCanvas" width="620" height="380"></canvas>
+      <canvas id="cbCanvas" width="440" height="440"></canvas>
       <div class="combat-side">
         <h3>전황</h3>
         <div class="row"><span>남은 시간</span><b id="cbTime">—</b></div>
@@ -597,7 +597,8 @@ function viewCombat(){
 }
 /* central arena: a grid of god cells. monsters circle the PERIMETER of this
    rect (빙글빙글). gods sit in cells and are drag-swappable. */
-const GRID_COLS=3, GRID_ROWS=3, RANGE_SCALE=34;
+const GRID_COLS=3, GRID_ROWS=3, RANGE_SCALE=44, RANGE_OFF=24;
+const rangePxOf = g => g.range*RANGE_SCALE + RANGE_OFF;
 function cellCenter(cs,idx){
   const col=idx%GRID_COLS, row=Math.floor(idx/GRID_COLS);
   const cw=cs.rect.w/GRID_COLS, ch=cs.rect.h/GRID_ROWS;
@@ -619,19 +620,20 @@ function perimPoint(cs,d){
 function startCombat(){
   const w=state.wave, isBoss=(w%5===0);
   applyWaveEvents(w);
-  const baseHP=90+w*12;
-  const rect={x:70,y:44,w:400,h:290};
-  // god cells: place roster into the first grid cells; player can drag to rearrange
+  // gentle early HP so a starting-level god can actually kill (wave1 rat ~20 HP)
+  const baseHP=14+w*6;
+  const rect={x:40,y:40,w:360,h:360}; // SQUARE arena → square 120px cells, range stays consistent
   const cells=Array(GRID_COLS*GRID_ROWS).fill(null);
-  const cellOrder=[4,1,3,5,7,0,2,6,8]; // center-out fill so single gods start reachable
+  // fill outer ring first (center cell only reaches the border with long range)
+  const cellOrder=[1,3,5,7,0,2,6,8,4];
   state.roster.forEach((id,i)=>{ cells[cellOrder[i]]=id; });
   combatState={
-    w, isBoss, rect, cells, monsters:[], kills:0, time:isBoss?40:30, elapsed:0,
-    spawnT:0, spawned:0, spawnCap:isBoss?1:(30+w*4), baseHP, over:55,
+    w, isBoss, rect, cells, monsters:[], kills:0, time:isBoss?45:28, elapsed:0,
+    spawnT:0, baseHP, over: isBoss?30:20,   // lose if this many monsters pile up circling
     perim:2*(rect.w+rect.h), boss:null, done:false, last:performance.now(),
     drag:null,
   };
-  if(isBoss) combatState.boss={ hp:baseHP*8, maxHp:baseHP*8, d:0, name:state.bossName };
+  if(isBoss) combatState.boss={ hp:baseHP*10, maxHp:baseHP*10, d:0, name:state.bossName };
   $('cbWaveInfo').textContent=isBoss?`등장 보스 : ${state.bossName}`:'일반 웨이브';
   renderCombatGods();
   bindCombatDrag();
@@ -670,8 +672,10 @@ function combatLoop(now){
   const cs=combatState; if(!cs||cs.done) return;
   const dt=Math.min(50, now-cs.last); cs.last=now;
   cs.elapsed+=dt/1000;
-  if(!cs.isBoss){ cs.spawnT+=dt; const interval=Math.max(500,1400-cs.w*40);
-    if(cs.spawnT>=interval && cs.spawned<cs.spawnCap){ cs.spawnT=0; spawnMonster(); cs.spawned++; } }
+  // monsters spawn continuously and keep circling — they never leave on their own,
+  // so they pile up. survival = kill rate must outpace spawn rate.
+  if(!cs.isBoss){ cs.spawnT+=dt; const interval=Math.max(600,1300-cs.w*30);
+    if(cs.spawnT>=interval){ cs.spawnT=0; spawnMonster(); } }
   // monsters circle the perimeter (빙글빙글)
   cs.monsters.forEach(mon=>{ if(mon.alive) mon.d += (dt/1000)*mon.spd*90; });
   if(cs.boss) cs.boss.d += (dt/1000)*40;
@@ -680,7 +684,7 @@ function combatLoop(now){
     const id=cs.cells[idx]; if(!id) continue;
     const g=godById(id); const o=(cs._cd=cs._cd||{});
     o[idx]=(o[idx]||0)-dt; if(o[idx]>0) continue;
-    const [cx,cy]=cellCenter(cs,idx), rangePx=g.range*RANGE_SCALE+18;
+    const [cx,cy]=cellCenter(cs,idx), rangePx=rangePxOf(g);
     let target=null,tgtBoss=false,best=Infinity,bestHi=-1;
     cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=perimPoint(cs,mon.d);
       if(Math.hypot(mx-cx,my-cy)<=rangePx){
@@ -729,7 +733,7 @@ function drawCombat(){
     const id=cs.cells[idx]; if(!id) continue;
     if(cs.drag && cs.drag.from===idx) continue; // being dragged, draw at cursor later
     const g=godById(id), [cx,cy]=cellCenter(cs,idx);
-    ctx.beginPath(); ctx.strokeStyle=g.color+'44'; ctx.lineWidth=1; ctx.arc(cx,cy,g.range*RANGE_SCALE+18,0,7); ctx.stroke();
+    ctx.beginPath(); ctx.strokeStyle=g.color+'44'; ctx.lineWidth=1; ctx.arc(cx,cy,rangePxOf(g),0,7); ctx.stroke();
     ctx.fillStyle=g.color; ctx.beginPath(); ctx.arc(cx,cy,17,0,7); ctx.fill();
     ctx.fillStyle='#1a1508'; ctx.font='17px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(g.icon,cx,cy);
   }
