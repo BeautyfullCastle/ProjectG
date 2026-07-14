@@ -502,11 +502,11 @@ function ownedInfoRow(o){
   const g=godById(o.godId);
   const lo=Math.max(state.wave, o.wave-o.margin), hi=Math.min(TOTAL_WAVES,o.wave+o.margin);
   const ev=EVENTS.find(e=>e.id===o.eid);
-  const left=o.wave-state.wave;
-  const status = o.realized ? `<span class="up" style="font-weight:700;">✅ 실현됨 (Wave ${o.wave})</span>`
-    : left<=0 ? `<span class="up" style="font-weight:700;">지금 실현 중</span>`
-    : `<span class="num">${left}웨이브 후 실현</span>`;
-  return `<div class="owned-info ${o.realized?'realized':''}"><b style="color:${g.color}">${g.kr}</b> 관련 사건이 <b class="num">${lo}~${hi} Wave</b>(오차±${o.margin}) 사이에 발생합니다. · ${status}<br><span style="color:var(--muted)">${ev?ev.desc:''}</span></div>`;
+  // don't reveal the exact wave via a countdown — that's a spoiler regardless of the
+  // margin paid for. only the lo~hi estimate (which narrows as state.wave advances
+  // and clamps against the current wave) updates; "실현됨" only appears after the fact.
+  const status = o.realized ? `<span class="up" style="font-weight:700;">✅ 실현됨</span>` : '';
+  return `<div class="owned-info ${o.realized?'realized':''}"><b style="color:${g.color}">${g.kr}</b> 관련 사건이 <b class="num">${lo}~${hi} Wave</b>(오차±${o.margin}) 사이에 발생합니다.${status?` · ${status}`:''}<br><span style="color:var(--muted)">${ev?ev.desc:''}</span></div>`;
 }
 
 /* ---- news ---- */
@@ -605,10 +605,11 @@ function viewCombat(){
 /* central arena: a grid of god cells. monsters circle the PERIMETER of this
    rect (빙글빙글). gods sit in cells and are drag-swappable. */
 const GRID_COLS=5, GRID_ROWS=3;
-// road ring sits 60px out from the near column, 90/120/150px from mid/far cells
-// (measured cell-center → nearest road point). Table gives each range value a
-// clean buffer past its tier so hit-testing isn't a razor-thin tangent point.
-const RANGE_TABLE={1:75, 2:85, 3:115, 4:135, 5:165};
+// road ring sits 60px out from near cells (edge), 90/120/150px from mid/far cells,
+// but a NEAR CORNER cell's farthest relevant point is the road's corner turn (~108px
+// diagonally) — a melee god parked in a corner must still reach a monster rounding
+// that corner, so near-tier values are sized past 108px, not just the 60px edge.
+const RANGE_TABLE={1:120, 2:135, 3:155, 4:170, 5:190};
 const rangePxOf = g => RANGE_TABLE[g.range] || (g.range*30+50);
 function cellCenter(cs,idx){
   const col=idx%GRID_COLS, row=Math.floor(idx/GRID_COLS);
