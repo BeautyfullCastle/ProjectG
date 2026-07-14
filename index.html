@@ -592,7 +592,7 @@ function viewCombat(){
       <canvas id="cbCanvas" width="460" height="400"></canvas>
       <div class="combat-side">
         <h3>전황</h3>
-        <div class="row"><span>남은 시간</span><b id="cbTime">—</b></div>
+        <div class="row"><span>출현 진행</span><b id="cbTime">—</b></div>
         <div class="row"><span>필드 몬스터</span><b id="cbMon">—</b></div>
         <div class="row"><span>처치 수</span><b id="cbKills">—</b></div>
         ${isBoss?`<div class="row"><span>보스 HP</span><b id="cbBoss">—</b></div>`:''}
@@ -632,8 +632,9 @@ function perimPoint(cs,d){
 function startCombat(){
   const w=state.wave, isBoss=(w%5===0);
   applyWaveEvents(w);
-  // gentle early HP so a starting-level god can actually kill (wave1 rat ~20 HP)
-  const baseHP=14+w*6;
+  // HP ramps up faster wave-over-wave (compounding, not just linear) so the game
+  // actually gets harder, not just longer
+  const baseHP=Math.round(16*Math.pow(1.22,w-1)+w*4);
   // 5x3 grid of 60px cells; the monster ROAD is a separate ring offset outward
   // from the grid (asymmetric margin so column position, not just row, drives range tier)
   const gridRect={x:80,y:110,w:300,h:180};
@@ -642,9 +643,12 @@ function startCombat(){
   // fill outer ring first (center cell only reaches the road with long range)
   const cellOrder=[0,4,10,14,1,3,11,13,5,9,6,8,2,12,7];
   state.roster.forEach((id,i)=>{ cells[cellOrder[i]]=id; });
+  // wave clears once a FIXED headcount of monsters has been spawned and killed
+  // (boss waves also spawn a smaller escort headcount alongside the boss)
+  const total = isBoss ? 8+Math.floor(w/5)*2 : 10+w*2;
   combatState={
-    w, isBoss, gridRect, pathRect, cells, monsters:[], kills:0, time:isBoss?45:28, elapsed:0,
-    spawnT:0, baseHP, over: isBoss?30:20,   // lose if this many monsters pile up circling
+    w, isBoss, gridRect, pathRect, cells, monsters:[], kills:0, elapsed:0,
+    spawnT:0, spawned:0, total, baseHP, over: isBoss?30:20,   // lose if this many monsters pile up circling
     perim:2*(pathRect.w+pathRect.h), boss:null, done:false, last:performance.now(),
     drag:null, fxBurst:[], fxCoin:[],
   };
@@ -665,8 +669,11 @@ function spawnMonster(){
   const cs=combatState;
   const type=cs.w>=6 && Math.random()<0.5?'bird':'rat';
   const m=MONSTERS[type];
+  // reward scales with wave too, so clearing later waves is worth meaningfully more
+  const reward=Math.round((10+cs.w*2)*m.reward);
   cs.monsters.push({type, hp:Math.round(cs.baseHP*m.hp), maxHp:Math.round(cs.baseHP*m.hp),
-    spd:m.spd, reward:Math.round(6*m.reward), d:0, alive:true});
+    spd:m.spd, reward, d:0, alive:true});
+  cs.spawned++;
 }
 function bindCombatDrag(){
   const cv=$('cbCanvas'); if(!cv) return;
@@ -687,9 +694,10 @@ function combatLoop(now){
   const cs=combatState; if(!cs||cs.done) return;
   const dt=Math.min(50, now-cs.last); cs.last=now;
   cs.elapsed+=dt/1000;
-  // monsters spawn continuously and keep circling — they never leave on their own,
-  // so they pile up. survival = kill rate must outpace spawn rate.
-  if(!cs.isBoss){ cs.spawnT+=dt; const interval=Math.max(600,1300-cs.w*30);
+  // monsters spawn until the wave's fixed headcount is reached, then keep circling —
+  // they never leave on their own, so they pile up. survival = kill rate must
+  // outpace spawn rate. boss waves ALSO spawn escort monsters alongside the boss.
+  if(cs.spawned<cs.total){ cs.spawnT+=dt; const interval=Math.max(600,1300-cs.w*30);
     if(cs.spawnT>=interval){ cs.spawnT=0; spawnMonster(); } }
   // monsters circle the perimeter (빙글빙글)
   cs.monsters.forEach(mon=>{ if(mon.alive) mon.d += (dt/1000)*mon.spd*90; });
@@ -714,7 +722,12 @@ function combatLoop(now){
     cs._fx=cs._fx||[]; cs._fx.push({x:cx,y:cy,tx,ty,t:now,c:g.color});
     target.hp -= godAttack(id);
     if(target.hp<=0){
-      if(tgtBoss){ cs.boss=null; endCombat(true); return; }
+      if(tgtBoss){
+        const bossReward=Math.round(cs.baseHP*4);
+        cs.boss=null; cs.kills++; state.coin+=bossReward;
+        cs.fxBurst.push({x:tx,y:ty,t:now}); cs.fxCoin.push({x:tx,y:ty,t:now,amt:bossReward});
+        endCombat(true); return;
+      }
       target.alive=false; cs.kills++; state.coin+=target.reward;
       const [dx,dy]=perimPoint(cs,target.d);
       cs.fxBurst.push({x:dx,y:dy,t:now});
@@ -723,9 +736,11 @@ function combatLoop(now){
   }
   cs.monsters=cs.monsters.filter(m=>m.alive);
   if(cs.monsters.length>cs.over){ endCombat(false); return; }
-  if(cs.elapsed>=cs.time){ endCombat(cs.isBoss? !cs.boss : true); return; }
+  // wave clears once every planned monster has spawned and died — boss waves also
+  // require the boss dead (handled above via endCombat(true) on boss kill)
+  if(!cs.isBoss && cs.spawned>=cs.total && cs.monsters.length===0){ endCombat(true); return; }
   drawCombat();
-  $('cbTime').textContent=Math.max(0,Math.ceil(cs.time-cs.elapsed))+'s';
+  $('cbTime').textContent=cs.spawned+' / '+cs.total+' 마리';
   $('cbMon').textContent=cs.monsters.length+' / '+cs.over;
   $('cbKills').textContent=cs.kills;
   if(cs.isBoss && $('cbBoss')) $('cbBoss').textContent=cs.boss?Math.max(0,Math.round(cs.boss.hp))+' / '+cs.boss.maxHp:'처치!';
