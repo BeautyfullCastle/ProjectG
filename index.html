@@ -214,8 +214,8 @@ const EVENTS = [
 ];
 
 const MONSTERS = {
-  rat:{kr:"쥐", hp:1.0, spd:0.9, reward:1.0, desc:"이동 속도가 느리고 체력도 적지만 많은 숫자가 등장합니다."},
-  bird:{kr:"새", hp:0.7, spd:1.5, reward:1.1, desc:"이동 속도가 빠르지만 체력이 적습니다."},
+  rat:{kr:"쥐", icon:"🐀", hp:1.0, spd:0.9, reward:1.0, desc:"이동 속도가 느리고 체력도 적지만 많은 숫자가 등장합니다."},
+  bird:{kr:"새", icon:"🐦", hp:0.7, spd:1.5, reward:1.1, desc:"이동 속도가 빠르지만 체력이 적습니다."},
 };
 const BOSSES = ["메두사","미노타우로스","키클롭스","히드라","케르베로스","티폰","크로노스","기간테스","타나토스","카오스"];
 
@@ -538,8 +538,8 @@ function viewSetup(){
       <div class="wave-info">
         <h3 style="font-family:var(--font-display);font-size:15px;margin-bottom:12px;color:var(--gold);">Wave 정보</h3>
         ${isBoss? `<div class="r"><div class="ic">🗿</div><div class="t"><b>Boss : ${state.bossName}</b><small>10초에 한번 주변 범위 안의 신들을 2초간 돌로 만듭니다. 시간 내 처치하지 못하면 패배합니다.</small></div></div>`:''}
-        <div class="r"><div class="ic">🐀</div><div class="t"><b>Monster : 쥐</b><small>${MONSTERS.rat.desc}</small></div></div>
-        <div class="r"><div class="ic">🐦</div><div class="t"><b>Monster : 새</b><small>${MONSTERS.bird.desc}</small></div></div>
+        <div class="r"><div class="ic">${MONSTERS.rat.icon}</div><div class="t"><b>Monster : ${MONSTERS.rat.kr}</b><small>${MONSTERS.rat.desc}</small></div></div>
+        <div class="r"><div class="ic">${MONSTERS.bird.icon}</div><div class="t"><b>Monster : ${MONSTERS.bird.kr}</b><small>${MONSTERS.bird.desc}</small></div></div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">출전 슬롯 (최대 ${ROSTER_SLOTS})</div>
@@ -781,10 +781,10 @@ function drawCombat(){
     ctx.fillStyle=g.color; ctx.beginPath(); ctx.arc(cx,cy,17,0,7); ctx.fill();
     ctx.fillStyle='#1a1508'; ctx.font='17px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(g.icon,cx,cy);
   }
-  // monsters on perimeter
+  // monsters on perimeter — same sprite glyph shown in the wave-info list
   cs.monsters.forEach(mon=>{ if(!mon.alive)return; const [mx,my]=perimPoint(cs,mon.d);
-    ctx.fillStyle=mon.type==='bird'?'#7fb0d0':'#d9635a';
-    ctx.beginPath(); ctx.arc(mx,my,mon.type==='bird'?6:7,0,7); ctx.fill();
+    ctx.font='16px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(MONSTERS[mon.type].icon, mx, my);
     ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillRect(mx-9,my-13,18,3);
     ctx.fillStyle='#4fae7c'; ctx.fillRect(mx-9,my-13,18*Math.max(0,mon.hp/mon.maxHp),3);
   });
