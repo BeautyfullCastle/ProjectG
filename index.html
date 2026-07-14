@@ -362,12 +362,18 @@ function currentNews(){
   const wsShift={};
   upcoming.forEach(id=>{ const ev=EVENTS.find(e=>e.id===id); if(!ev) return;
     ev.effWS.forEach(([ids,val])=> ids.forEach(i=> wsShift[i]=(wsShift[i]||0)+val)); });
-  const rising = Object.entries(wsShift).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,2);
-  const falling = Object.entries(wsShift).filter(([,v])=>v<0).sort((a,b)=>a[1]-b[1]).slice(0,2);
   const nm=id=>WS_DEFS.find(w=>w.id==id).name;
+  // several WS scores (e.g. 풍요/인류밀집/인류의 수) always move together in the event
+  // data — showing each as its own tag reads as redundant/overlapping noise, so merge
+  // any scores that shifted by the exact same net amount into a single combined tag
+  const byVal={};
+  Object.entries(wsShift).forEach(([id,v])=>{ if(v===0) return; (byVal[v]=byVal[v]||[]).push(+id); });
+  const groups = Object.entries(byVal).map(([v,ids])=>({v:+v, label: ids.sort((a,b)=>a-b).map(nm).join('·')}));
+  const rising = groups.filter(g=>g.v>0).sort((a,b)=>b.v-a.v).slice(0,2);
+  const falling = groups.filter(g=>g.v<0).sort((a,b)=>a.v-b.v).slice(0,2);
   const kws=[];
-  rising.forEach(([id])=>kws.push(nm(id)+" 상승 조짐"));
-  falling.forEach(([id])=>kws.push(nm(id)+" 하락 우려"));
+  rising.forEach(g=>kws.push(g.label+" 상승 조짐"));
+  falling.forEach(g=>kws.push(g.label+" 하락 우려"));
   const firstEv = upcoming.length? EVENTS.find(e=>e.id===upcoming[0]) : null;
   return {
     headline: firstEv? firstEv.desc : "인간계는 잠시 평온을 되찾았습니다.",
