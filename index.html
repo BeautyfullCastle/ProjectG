@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project G — Prototype v2</title>
-<style>
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Project G — Prototype v2</title><style>
 :root{
   --bg:#0b0d12; --panel:#151822; --panel2:#1b1f2c; --border:#3f4658;
   --gold:#c9a15a; --gold-dim:#8a743f; --select:#5ec8f0;
@@ -87,6 +82,8 @@ button.active{border-color:var(--gold);color:var(--gold);}
 .info-card .buys{display:flex;flex-direction:column;gap:5px;}
 .info-tabs{display:flex;gap:6px;margin-bottom:12px;}
 .owned-info{padding:10px 12px;border:1px dashed var(--gold-dim);border-radius:9px;background:var(--panel2);margin-bottom:8px;font-size:13px;line-height:1.5;}
+.owned-info.realized{border-style:solid;border-color:#4fae7c;opacity:.8;}
+.realized-banner{padding:10px 12px;border:1px solid #4fae7c;border-radius:9px;background:#4fae7c22;margin-bottom:12px;font-size:12.5px;line-height:1.6;}
 
 /* news */
 .news{max-width:560px;margin:0 auto;border:2px solid var(--border);border-radius:6px;padding:20px 24px;background:var(--panel2);}
@@ -152,9 +149,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:6px 0;}
   .hub-grid,.pick-grid{grid-template-columns:1fr;}
   .roster{grid-template-columns:1fr;}
 }
-</style>
-</head>
-<body>
+</style></head><body>
 
 <div class="app">
   <div class="hud">
@@ -236,7 +231,8 @@ const state = {
   waveEvents:[],        // pre-rolled: waveEvents[w] = [eventId,...]
   usedGlobally:new Set(),
   roster:[],            // godId[] deployed this run (persists between waves)
-  ownedInfo:[],         // [{godId, wave, margin}]
+  ownedInfo:[],         // [{godId, wave, margin, eid, realized}]
+  justRealized:[],      // ownedInfo entries whose predicted wave just fired
   sortKey:"price",
   newsSeen:false,
   lastResult:null,
@@ -294,6 +290,8 @@ function prerollAllWaves(){
 }
 // apply a wave's events to WS scores + reprice gods
 function applyWaveEvents(w){
+  state.justRealized=[];
+  state.ownedInfo.forEach(o=>{ if(!o.realized && o.wave===w){ o.realized=true; state.justRealized.push(o); } });
   (state.waveEvents[w]||[]).forEach(eid=>{
     const ev=EVENTS.find(e=>e.id===eid); if(!ev) return;
     // snapshot D + pop/faith BEFORE (원본 버그픽스 반영)
@@ -352,7 +350,7 @@ function buyInfo(card, margin){
   const cost = Math.round((margin===1?1000:500)*hermesDiscount());
   if(state.coin<cost) return false;
   state.coin-=cost;
-  state.ownedInfo.push({godId:card.godId, wave:card.wave, margin, eid:card.eid});
+  state.ownedInfo.push({godId:card.godId, wave:card.wave, margin, eid:card.eid, realized:false});
   return true;
 }
 
@@ -420,7 +418,12 @@ function viewStart(){
 
 /* ---- hub ---- */
 function viewHub(){
+  const realized = state.justRealized||[];
   return `<div class="screen-head"><h2>활동 선택</h2><span class="back">진행중인 웨이브: ${String(state.wave).padStart(2,'0')}</span></div>
+    ${realized.length? `<div class="realized-banner">${realized.map(o=>{
+      const g=godById(o.godId), ev=EVENTS.find(e=>e.id===o.eid);
+      return `🔮 <b style="color:${g.color}">${g.kr}</b> 관련 정보가 실현됐습니다 — ${ev?ev.desc:''}`;
+    }).join('<br>')}</div>` : ''}
     <div class="hub-grid">
       <div class="hub-card" data-go="news"><div class="ico">📰</div><div class="name">아르고스</div><div class="desc">인간계 뉴스 — 다가올 사건의 키워드 힌트</div></div>
       <div class="hub-card" data-go="godsdaq"><div class="ico">🏛️</div><div class="name">GODSDAQ</div><div class="desc">신 주식 매매 — 오를 신을 미리 사고, 오른 신을 팔기</div></div>
@@ -499,7 +502,11 @@ function ownedInfoRow(o){
   const g=godById(o.godId);
   const lo=Math.max(state.wave, o.wave-o.margin), hi=Math.min(TOTAL_WAVES,o.wave+o.margin);
   const ev=EVENTS.find(e=>e.id===o.eid);
-  return `<div class="owned-info"><b style="color:${g.color}">${g.kr}</b> 관련 사건이 <b class="num">${lo}~${hi} Wave</b>(오차±${o.margin}) 사이에 발생합니다.<br><span style="color:var(--muted)">${ev?ev.desc:''}</span></div>`;
+  const left=o.wave-state.wave;
+  const status = o.realized ? `<span class="up" style="font-weight:700;">✅ 실현됨 (Wave ${o.wave})</span>`
+    : left<=0 ? `<span class="up" style="font-weight:700;">지금 실현 중</span>`
+    : `<span class="num">${left}웨이브 후 실현</span>`;
+  return `<div class="owned-info ${o.realized?'realized':''}"><b style="color:${g.color}">${g.kr}</b> 관련 사건이 <b class="num">${lo}~${hi} Wave</b>(오차±${o.margin}) 사이에 발생합니다. · ${status}<br><span style="color:var(--muted)">${ev?ev.desc:''}</span></div>`;
 }
 
 /* ---- news ---- */
@@ -582,7 +589,7 @@ function viewCombat(){
   return `<div class="screen-head"><h2>전투 · 웨이브 ${String(state.wave).padStart(2,'0')}</h2>
     <span class="back" id="cbWaveInfo"></span></div>
     <div class="combat-wrap">
-      <canvas id="cbCanvas" width="440" height="440"></canvas>
+      <canvas id="cbCanvas" width="460" height="400"></canvas>
       <div class="combat-side">
         <h3>전황</h3>
         <div class="row"><span>남은 시간</span><b id="cbTime">—</b></div>
@@ -597,21 +604,25 @@ function viewCombat(){
 }
 /* central arena: a grid of god cells. monsters circle the PERIMETER of this
    rect (빙글빙글). gods sit in cells and are drag-swappable. */
-const GRID_COLS=3, GRID_ROWS=3, RANGE_SCALE=44, RANGE_OFF=24;
-const rangePxOf = g => g.range*RANGE_SCALE + RANGE_OFF;
+const GRID_COLS=5, GRID_ROWS=3;
+// road ring sits 60px out from the near column, 90/120/150px from mid/far cells
+// (measured cell-center → nearest road point). Table gives each range value a
+// clean buffer past its tier so hit-testing isn't a razor-thin tangent point.
+const RANGE_TABLE={1:75, 2:85, 3:115, 4:135, 5:165};
+const rangePxOf = g => RANGE_TABLE[g.range] || (g.range*30+50);
 function cellCenter(cs,idx){
   const col=idx%GRID_COLS, row=Math.floor(idx/GRID_COLS);
-  const cw=cs.rect.w/GRID_COLS, ch=cs.rect.h/GRID_ROWS;
-  return [cs.rect.x+(col+0.5)*cw, cs.rect.y+(row+0.5)*ch];
+  const cw=cs.gridRect.w/GRID_COLS, ch=cs.gridRect.h/GRID_ROWS;
+  return [cs.gridRect.x+(col+0.5)*cw, cs.gridRect.y+(row+0.5)*ch];
 }
 function cellAt(cs,px,py){
-  const {x,y,w,h}=cs.rect;
+  const {x,y,w,h}=cs.gridRect;
   if(px<x||py<y||px>=x+w||py>=y+h) return -1;
   const col=Math.floor((px-x)/(w/GRID_COLS)), row=Math.floor((py-y)/(h/GRID_ROWS));
   return row*GRID_COLS+col;
 }
 function perimPoint(cs,d){
-  const {x,y,w,h}=cs.rect, per=2*(w+h); d=((d%per)+per)%per;
+  const {x,y,w,h}=cs.pathRect, per=2*(w+h); d=((d%per)+per)%per;
   if(d<w) return [x+d,y];
   if(d<w+h) return [x+w,y+(d-w)];
   if(d<2*w+h) return [x+w-(d-w-h),y+h];
@@ -622,16 +633,19 @@ function startCombat(){
   applyWaveEvents(w);
   // gentle early HP so a starting-level god can actually kill (wave1 rat ~20 HP)
   const baseHP=14+w*6;
-  const rect={x:40,y:40,w:360,h:360}; // SQUARE arena → square 120px cells, range stays consistent
+  // 5x3 grid of 60px cells; the monster ROAD is a separate ring offset outward
+  // from the grid (asymmetric margin so column position, not just row, drives range tier)
+  const gridRect={x:80,y:110,w:300,h:180};
+  const pathRect={x:50,y:50,w:360,h:300};
   const cells=Array(GRID_COLS*GRID_ROWS).fill(null);
-  // fill outer ring first (center cell only reaches the border with long range)
-  const cellOrder=[1,3,5,7,0,2,6,8,4];
+  // fill outer ring first (center cell only reaches the road with long range)
+  const cellOrder=[0,4,10,14,1,3,11,13,5,9,6,8,2,12,7];
   state.roster.forEach((id,i)=>{ cells[cellOrder[i]]=id; });
   combatState={
-    w, isBoss, rect, cells, monsters:[], kills:0, time:isBoss?45:28, elapsed:0,
+    w, isBoss, gridRect, pathRect, cells, monsters:[], kills:0, time:isBoss?45:28, elapsed:0,
     spawnT:0, baseHP, over: isBoss?30:20,   // lose if this many monsters pile up circling
-    perim:2*(rect.w+rect.h), boss:null, done:false, last:performance.now(),
-    drag:null,
+    perim:2*(pathRect.w+pathRect.h), boss:null, done:false, last:performance.now(),
+    drag:null, fxBurst:[], fxCoin:[],
   };
   if(isBoss) combatState.boss={ hp:baseHP*10, maxHp:baseHP*10, d:0, name:state.bossName };
   $('cbWaveInfo').textContent=isBoss?`등장 보스 : ${state.bossName}`:'일반 웨이브';
@@ -701,6 +715,9 @@ function combatLoop(now){
     if(target.hp<=0){
       if(tgtBoss){ cs.boss=null; endCombat(true); return; }
       target.alive=false; cs.kills++; state.coin+=target.reward;
+      const [dx,dy]=perimPoint(cs,target.d);
+      cs.fxBurst.push({x:dx,y:dy,t:now});
+      cs.fxCoin.push({x:dx,y:dy,t:now,amt:target.reward});
     }
   }
   cs.monsters=cs.monsters.filter(m=>m.alive);
@@ -717,11 +734,16 @@ function drawCombat(){
   const cs=combatState, cv=$('cbCanvas'); if(!cv)return; const ctx=cv.getContext('2d');
   const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   ctx.clearRect(0,0,cv.width,cv.height);
-  const r=cs.rect;
-  // arena fill + grid
+  const r=cs.gridRect, p=cs.pathRect;
+  // road ring (offset outside the grid) — monsters circle this, not the grid border
+  ctx.strokeStyle=cssv('--gold-dim'); ctx.lineWidth=18; ctx.globalAlpha=.25;
+  ctx.strokeRect(p.x,p.y,p.w,p.h); ctx.globalAlpha=1;
+  ctx.strokeStyle=cssv('--gold-dim'); ctx.lineWidth=2; ctx.setLineDash([6,5]);
+  ctx.strokeRect(p.x,p.y,p.w,p.h); ctx.setLineDash([]);
+  // arena fill + grid (gods live here, inset from the road)
   ctx.fillStyle=cssv('--panel'); ctx.fillRect(r.x,r.y,r.w,r.h);
-  ctx.strokeStyle=cssv('--gold-dim'); ctx.lineWidth=3; ctx.strokeRect(r.x,r.y,r.w,r.h); // the perimeter monsters circle
-  ctx.strokeStyle=cssv('--border'); ctx.lineWidth=1;
+  ctx.strokeStyle=cssv('--border'); ctx.lineWidth=2; ctx.strokeRect(r.x,r.y,r.w,r.h);
+  ctx.lineWidth=1;
   for(let c=1;c<GRID_COLS;c++){ ctx.beginPath(); ctx.moveTo(r.x+c*r.w/GRID_COLS,r.y); ctx.lineTo(r.x+c*r.w/GRID_COLS,r.y+r.h); ctx.stroke(); }
   for(let rr=1;rr<GRID_ROWS;rr++){ ctx.beginPath(); ctx.moveTo(r.x,r.y+rr*r.h/GRID_ROWS); ctx.lineTo(r.x+r.w,r.y+rr*r.h/GRID_ROWS); ctx.stroke(); }
   // attack flashes
@@ -750,6 +772,21 @@ function drawCombat(){
     ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillRect(bx-26,by-22,52,5);
     ctx.fillStyle='#d9635a'; ctx.fillRect(bx-26,by-22,52*Math.max(0,cs.boss.hp/cs.boss.maxHp),5);
   }
+  // kill burst effect (expanding ring)
+  cs.fxBurst=(cs.fxBurst||[]).filter(f=>now-f.t<420);
+  cs.fxBurst.forEach(f=>{ const t=(now-f.t)/420, rad=6+t*22;
+    ctx.globalAlpha=1-t; ctx.strokeStyle='#ffcf5c'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(f.x,f.y,rad,0,7); ctx.stroke();
+    ctx.fillStyle='#ffcf5c'; ctx.globalAlpha=(1-t)*0.5;
+    for(let k=0;k<6;k++){ const ang=k*Math.PI/3, dist=rad*0.9;
+      ctx.beginPath(); ctx.arc(f.x+Math.cos(ang)*dist,f.y+Math.sin(ang)*dist,2,0,7); ctx.fill(); }
+    ctx.globalAlpha=1; });
+  // floating "+coin" text
+  cs.fxCoin=(cs.fxCoin||[]).filter(f=>now-f.t<700);
+  cs.fxCoin.forEach(f=>{ const t=(now-f.t)/700;
+    ctx.globalAlpha=1-t; ctx.fillStyle='#ffe6a0'; ctx.font='bold 12px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('+'+f.amt, f.x, f.y-8-t*18); ctx.globalAlpha=1; });
   // dragged god ghost at cursor
   if(cs.drag){ const g=godById(cs.drag.id);
     ctx.globalAlpha=.85; ctx.fillStyle=g.color; ctx.beginPath(); ctx.arc(cs.drag.x,cs.drag.y,17,0,7); ctx.fill();
@@ -812,5 +849,4 @@ function nextWave(){
 initPrices();
 render();
 </script>
-</body>
-</html>
+</body></html>
